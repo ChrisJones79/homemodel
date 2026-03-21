@@ -1,0 +1,60 @@
+interface: backend_to_viewer
+version: 1
+description: >
+  How the 3D viewer fetches model data and assets from the backend.
+  Viewer is a pure consumer — never writes back through this interface.
+
+surfaces:
+  - producer: "API.GET /scene/manifest"
+    contract:
+      name: SceneManifest
+      fields:
+        bounds_gps: "{sw: {lat, lon}, ne: {lat, lon}}"
+        origin_gps: "{lat, lon, alt_m} — world origin for local coords"
+        entity_count: "integer"
+        lod_levels: "[{level: int, max_distance_m: float, mesh_url: string}]"
+        last_updated: "ISO 8601 timestamp"
+    consumer: "Viewer.loadScene()"
+
+  - producer: "API.GET /scene/tiles/{z}/{x}/{y}.glb"
+    contract:
+      name: SceneTile
+      fields:
+        format: "glTF binary (.glb)"
+        coordinate_system: "Y-up, meters, origin at scene origin_gps"
+        contents: "terrain mesh + entities within tile bounds"
+    consumer: "Viewer.loadTile(z, x, y)"
+
+  - producer: "API.GET /entities/{id}/mesh"
+    contract:
+      name: EntityMesh
+      fields:
+        format: "glTF binary (.glb)"
+        id: "string — matches entity UUID"
+        lod: "integer — requested detail level"
+        textures_embedded: "boolean"
+    consumer: "Viewer.loadEntityDetail(id)"
+
+  - producer: "API.GET /nav/viewpoints"
+    contract:
+      name: ViewpointList
+      fields:
+        viewpoints: "[{id, label, position_gps, look_at_gps, indoor: bool}]"
+    consumer: "Viewer.buildNavMenu()"
+
+test_fixtures:
+  scene_manifest:
+    bounds_gps: {sw: {lat: 42.98643, lon: -70.98809}, ne: {lat: 42.98843, lon: -70.98609}}
+    origin_gps: {lat: 42.98743, lon: -70.98709, alt_m: 26.8}
+    entity_count: 47
+    lod_levels:
+      - {level: 0, max_distance_m: 50, mesh_url: "/scene/tiles/0/0/0.glb"}
+      - {level: 1, max_distance_m: 200, mesh_url: "/scene/tiles/1/0/0.glb"}
+    last_updated: "2026-03-18T14:00:00Z"
+
+  viewpoint_front_door:
+    id: "vp-front-door"
+    label: "Front Door"
+    position_gps: {lat: 42.98740, lon: -70.98705, alt_m: 27.3}
+    look_at_gps: {lat: 42.98740, lon: -70.98700, alt_m: 27.3}
+    indoor: false

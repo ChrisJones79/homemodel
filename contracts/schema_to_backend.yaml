@@ -1,0 +1,54 @@
+interface: schema_to_backend
+version: 1
+description: >
+  How the backend queries and mutates the model data store.
+  Backend is the only consumer of the schema layer.
+
+surfaces:
+  - producer: "SchemaStore.get_entity(id: str)"
+    contract:
+      name: Entity
+      fields:
+        id: "string — UUID"
+        type: "string — enum: terrain_patch, structure, wall, room, tree, feature"
+        geometry: "GeoJSON or vertex list"
+        position_gps: "{lat, lon, alt_m}"
+        provenance: "{source_type, source_id, timestamp, accuracy_m}"
+        version: "integer — increments on update"
+        properties: "dict — type-specific key/values"
+    consumer: "API.GET /entities/{id}"
+
+  - producer: "SchemaStore.query_region(bbox: BBox)"
+    contract:
+      name: EntityList
+      fields:
+        entities: "[{id, type, bounds, version}]"
+        total_count: "integer"
+    consumer: "API.GET /entities?bbox=sw_lat,sw_lon,ne_lat,ne_lon"
+
+  - producer: "SchemaStore.upsert_entity(entity: Entity)"
+    contract:
+      name: UpsertResult
+      fields:
+        id: "string"
+        version: "integer"
+        status: "string — enum: created, updated"
+    consumer: "API.POST /entities"
+
+  - producer: "SchemaStore.get_history(id: str)"
+    contract:
+      name: EntityHistory
+      fields:
+        id: "string"
+        revisions: "[{version, timestamp, provenance, diff_summary}]"
+    consumer: "API.GET /entities/{id}/history"
+
+test_fixtures:
+  entity_tree:
+    id: "550e8400-e29b-41d4-a716-446655440000"
+    type: "tree"
+    geometry: [[42.98750, -70.98720], [42.98750, -70.98719]]
+    position_gps: {lat: 42.98750, lon: -70.98720, alt_m: 28.0}
+    provenance: {source_type: "manual", source_id: "initial_survey", timestamp: "2026-03-18T12:00:00Z", accuracy_m: 1.0}
+    version: 1
+    properties: {species: "white_oak", dbh_cm: 85, canopy_radius_m: 8.5}

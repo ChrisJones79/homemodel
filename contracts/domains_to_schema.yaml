@@ -1,0 +1,88 @@
+interface: domains_to_schema
+version: 1
+description: >
+  How the three domain builders — terrain, structures, vegetation —
+  write their entities into the schema store. Each domain owns its
+  entity types but shares the common Entity format.
+
+surfaces:
+  - producer: "TerrainBuilder.generate_patches(elevation_data, aerial_images)"
+    contract:
+      name: TerrainPatch
+      fields:
+        type: "literal 'terrain_patch'"
+        geometry: "triangulated mesh vertices + faces"
+        position_gps: "{lat, lon, alt_m} — patch center"
+        bounds_gps: "{sw, ne}"
+        resolution_m: "float — ground sample distance"
+        properties:
+          elevation_source: "string — enum: usgs_ned, drone_photogram, lidar"
+          texture_source: "string — nullable, image id or 'none'"
+          slope_avg_deg: "float"
+    consumer: "SchemaStore.upsert_entity()"
+
+  - producer: "StructureBuilder.compile(floorplan, measurements, images)"
+    contract:
+      name: StructureEntity
+      fields:
+        type: "string — enum: structure, wall, room"
+        geometry: "extruded polygon or mesh"
+        position_gps: "{lat, lon, alt_m}"
+        properties:
+          parent_id: "string — nullable, structure id for walls/rooms"
+          floor_level: "integer — 0=ground, -1=basement, 1=second"
+          material: "string — nullable"
+          dimensions: "{width_m, height_m, depth_m} — as measured"
+          openings: "[{type: door|window, position_offset, width_m, height_m}]"
+    consumer: "SchemaStore.upsert_entity()"
+
+  - producer: "VegetationBuilder.catalog(survey_data, aerial_images)"
+    contract:
+      name: VegetationEntity
+      fields:
+        type: "literal 'tree'"
+        geometry: "point or simplified crown polygon"
+        position_gps: "{lat, lon, alt_m} — trunk base"
+        properties:
+          species: "string — nullable until identified"
+          dbh_cm: "float — diameter at breast height, nullable"
+          height_m: "float — estimated total height"
+          canopy_radius_m: "float"
+          canopy_shape: "string — enum: round, conical, spreading, columnar, irregular"
+          health: "string — enum: healthy, stressed, dead, unknown"
+          tags: "[string] — freeform, e.g. 'landmark', 'trail_marker'"
+    consumer: "SchemaStore.upsert_entity()"
+
+  - producer: "DomainBuilder.register_build(build_info)"
+    contract:
+      name: BuildRecord
+      fields:
+        domain: "string — enum: terrain, structures, vegetation"
+        timestamp: "ISO 8601"
+        source_inputs: "[{type, id, path}] — what data was consumed"
+        entities_written: "integer"
+        entities_updated: "integer"
+        errors: "[{entity_id, message}]"
+    consumer: "SchemaStore.log_build()"
+
+test_fixtures:
+  terrain_patch:
+    type: "terrain_patch"
+    geometry: {vertices: [[0,0,26.5],[10,0,26.7],[0,10,27.4]], faces: [[0,1,2]]}
+    position_gps: {lat: 42.98743, lon: -70.98709, alt_m: 26.8}
+    bounds_gps: {sw: {lat: 42.98693, lon: -70.98759}, ne: {lat: 42.98793, lon: -70.98659}}
+    resolution_m: 1.0
+    properties: {elevation_source: "usgs_ned", texture_source: null, slope_avg_deg: 4.2}
+
+  tree_white_pine:
+    type: "tree"
+    geometry: {type: "Point", coordinates: [-70.98730, 42.98760]}
+    position_gps: {lat: 42.98760, lon: -70.98730, alt_m: 28.4}
+    properties:
+      species: "white_pine"
+      dbh_cm: 62
+      height_m: 22.5
+      canopy_radius_m: 6.0
+      canopy_shape: "conical"
+      health: "healthy"
+      tags: ["driveway_line", "landmark"]

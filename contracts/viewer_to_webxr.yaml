@@ -1,0 +1,51 @@
+interface: viewer_to_webxr
+version: 1
+description: >
+  How the flat browser viewer hands off to the WebXR session
+  for Valve Index via SteamVR. Same scene data, different render path.
+
+surfaces:
+  - producer: "Viewer.requestXRSession()"
+    contract:
+      name: XRSessionConfig
+      fields:
+        mode: "string — enum: immersive-vr, inline"
+        reference_space: "string — enum: local-floor, bounded-floor"
+        initial_viewpoint_id: "string — current viewpoint at time of entry"
+        render_scale: "float — default 1.0, tunable for perf"
+        controller_mapping: "string — enum: valve_index, generic"
+    consumer: "WebXRRenderer.init()"
+
+  - producer: "Viewer.getSceneGraph()"
+    contract:
+      name: XRSceneHandoff
+      fields:
+        scene: "Three.js Scene reference — shared, not copied"
+        camera_rig: "{position, rotation} — synced from flat view"
+        nav_mesh: "mesh reference — walkable surface for teleport"
+        interaction_targets: "[{entity_id, mesh_ref, action: enum(inspect, enter, teleport)}]"
+    consumer: "WebXRRenderer.attachScene()"
+
+  - producer: "WebXRRenderer.onNavEvent(event)"
+    contract:
+      name: XRNavEvent
+      fields:
+        type: "string — enum: teleport, grab_move, point_select"
+        target_position_local: "{x, y, z} — in scene local coords"
+        target_entity_id: "string — nullable"
+        controller: "string — enum: left, right"
+    consumer: "Viewer.handleNav()"
+
+test_fixtures:
+  xr_session_config:
+    mode: "immersive-vr"
+    reference_space: "local-floor"
+    initial_viewpoint_id: "vp-front-door"
+    render_scale: 1.0
+    controller_mapping: "valve_index"
+
+  xr_teleport_event:
+    type: "teleport"
+    target_position_local: {x: 5.2, y: 0.0, z: -3.1}
+    target_entity_id: null
+    controller: "right"

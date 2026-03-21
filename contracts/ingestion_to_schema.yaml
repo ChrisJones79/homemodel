@@ -1,0 +1,71 @@
+interface: ingestion_to_schema
+version: 1
+description: >
+  How the ingestion pipeline submits new or updated data into the schema store.
+  Ingestion is the only writer beyond manual backend API calls.
+
+surfaces:
+  - producer: "Ingestion.submit_measurement(measurement: Measurement)"
+    contract:
+      name: Measurement
+      fields:
+        entity_id: "string — UUID, null if new entity"
+        measurement_type: "string — enum: laser_p2p, gps_point, image_derived, drone_telemetry"
+        value: "float or [float] — unit depends on type"
+        unit: "string — enum: m, cm, mm, inch, deg"
+        provenance: "{source_type, source_id, timestamp, accuracy_m}"
+        reference_points: "[{label, position_gps}] — what was measured between"
+    consumer: "SchemaStore.upsert_entity()"
+
+  - producer: "Ingestion.submit_image(image: ImageRecord)"
+    contract:
+      name: ImageRecord
+      fields:
+        file_path: "string — local filesystem path"
+        format: "string — enum: jpeg, png, tiff, raw"
+        size_bytes: "integer"
+        capture_gps: "{lat, lon, alt_m} — where camera was"
+        capture_heading: "{yaw_deg, pitch_deg, roll_deg} — nullable"
+        capture_timestamp: "ISO 8601"
+        source_type: "string — enum: phone, drone_aerial, drone_ground, dslr, scan"
+        linked_entity_ids: "[string] — optional, entities visible in image"
+    consumer: "SchemaStore.attach_image()"
+
+  - producer: "Ingestion.submit_bulk(batch: EntityBatch)"
+    contract:
+      name: EntityBatch
+      fields:
+        source: "string — e.g. osm_import, usgs_elevation, drone_survey_20260319"
+        entities: "[Entity] — list matching schema Entity contract"
+        conflict_strategy: "string — enum: skip, overwrite, version_bump"
+    consumer: "SchemaStore.bulk_upsert()"
+
+  - producer: "Ingestion.validate(payload: any)"
+    contract:
+      name: ValidationResult
+      fields:
+        valid: "boolean"
+        errors: "[{field, message}]"
+        warnings: "[{field, message}]"
+    consumer: "Ingestion pipeline internal — called before any submit"
+
+test_fixtures:
+  laser_measurement:
+    entity_id: "550e8400-e29b-41d4-a716-446655440000"
+    measurement_type: "laser_p2p"
+    value: 3.048
+    unit: "m"
+    provenance: {source_type: "laser", source_id: "bosch_glm50", timestamp: "2026-03-19T10:30:00Z", accuracy_m: 0.003}
+    reference_points:
+      - {label: "north_wall_base", position_gps: {lat: 42.98745, lon: -70.98705, alt_m: 26.8}}
+      - {label: "south_wall_base", position_gps: {lat: 42.98742, lon: -70.98705, alt_m: 26.8}}
+
+  drone_image:
+    file_path: "/data/images/drone/aerial_001.jpg"
+    format: "jpeg"
+    size_bytes: 8500000
+    capture_gps: {lat: 42.98743, lon: -70.98709, alt_m: 63.4}
+    capture_heading: {yaw_deg: 180.0, pitch_deg: -90.0, roll_deg: 0.0}
+    capture_timestamp: "2026-03-19T11:00:00Z"
+    source_type: "drone_aerial"
+    linked_entity_ids: []
