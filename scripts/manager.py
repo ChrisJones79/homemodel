@@ -209,13 +209,73 @@ def assign_agent(issue_number, task):
     return True
 
 
+def mark_done(task_id):
+    """Manually mark a task as done."""
+    tasks = load_tasks()
+    for task in tasks:
+        if task["id"] == task_id:
+            old_status = task["status"]
+            if old_status == "done":
+                log(f"Task {task_id} is already done.")
+                return
+            task["status"] = "done"
+            save_tasks(tasks)
+            log(f"MARKED DONE: {task_id} (was '{old_status}')")
+            ready = get_ready_tasks(tasks)
+            if ready:
+                log("  Now ready to dispatch:")
+                for r in ready:
+                    log(f"    - {r['id']}: {r['title']}")
+            return
+    log(f"ERROR: Task '{task_id}' not found in tasks.yaml")
+    sys.exit(1)
+
+
+def add_task(task_id, title, agent, area, depends_on=None):
+    """Add a new task to tasks.yaml."""
+    tasks = load_tasks()
+    if any(t["id"] == task_id for t in tasks):
+        log(f"ERROR: Task '{task_id}' already exists.")
+        sys.exit(1)
+    if agent not in AGENT_MAP:
+        log(f"ERROR: Agent must be one of {list(AGENT_MAP.keys())}")
+        sys.exit(1)
+    try:
+        area_int = int(area)
+    except (TypeError, ValueError):
+        log(f"ERROR: Area must be an integer, got {area!r}")
+        sys.exit(1)
+    new_task = {
+        "id": task_id,
+        "title": title,
+        "agent": agent,
+        "area": area_int,
+        "status": "pending",
+        "description": f"TODO: Fill in description for {title}\n",
+        "acceptance": ["TODO: Add acceptance criteria"],
+        "custom_agent": "",
+    }
+    if depends_on:
+        new_task["depends_on"] = depends_on
+    tasks.append(new_task)
+    save_tasks(tasks)
+    log(f"ADDED: {task_id} — {title}")
+
+
 def dispatch_ready_tasks():
     """Main dispatch loop."""
     tasks = load_tasks()
     ready = get_ready_tasks(tasks)
 
     if not ready:
-        log("No tasks ready to dispatch.")
+        dispatched = [t for t in tasks if t["status"] == "dispatched"]
+        pending = [t for t in tasks if t["status"] == "pending"]
+        done = [t for t in tasks if t["status"] == "done"]
+        log(f"No tasks ready to dispatch. "
+            f"({len(done)} done, {len(dispatched)} dispatched, {len(pending)} pending/blocked)")
+        if dispatched:
+            log("  TIP: Run 'status' to check dispatched tasks, "
+                "or 'mark-done <id>' to manually complete one.")
         return
 
     for task in ready:
@@ -232,31 +292,46 @@ def dispatch_ready_tasks():
 
 
 def check_status():
-    """Check dispatched tasks for completed PRs."""
+    """Check dispatched tasks for completion by inspecting issue state."""
     tasks = load_tasks()
+    changed = False
     for task in tasks:
         if task["status"] != "dispatched":
             continue
         issue_num = task.get("issue_number")
         if not issue_num:
+            log(f"  SKIP: {task['id']} has no issue_number")
             continue
-        # Check if issue has a linked merged PR
+
+        # Check if the GitHub issue is closed
         result = subprocess.run(
-            [
-                "gh", "pr", "list",
-                "--repo", REPO,
-                "--search", f"closes #{issue_num}",
-                "--json", "number,state,mergedAt",
-            ],
+            ["gh", "issue", "view", str(issue_num),
+             "--repo", REPO,
+             "--json", "state,stateReason,title"],
             capture_output=True, text=True
         )
-        prs = json.loads(result.stdout)
-        for pr in prs:
-            if pr.get("mergedAt"):
-                task["status"] = "done"
-                log(f"DONE: {task['id']} (PR #{pr['number']} merged)")
+        if result.returncode != 0:
+            log(f"  ERROR: Could not fetch issue #{issue_num}: {result.stderr.strip()}")
+            continue
 
-    save_tasks(tasks)
+        issue_data = json.loads(result.stdout)
+        state = issue_data.get("state", "")
+        reason = issue_data.get("stateReason", "")
+
+        if state == "CLOSED" and reason == "COMPLETED":
+            task["status"] = "done"
+            changed = True
+            log(f"  DONE: {task['id']} (issue #{issue_num} closed as completed)")
+        elif state == "CLOSED":
+            log(f"  WARN: {task['id']} issue #{issue_num} closed as '{reason}' — not marking done")
+        else:
+            log(f"  OPEN: {task['id']} issue #{issue_num} still open")
+
+    if changed:
+        save_tasks(tasks)
+        log("Tasks updated.")
+    else:
+        log("No status changes detected.")
 
 
 if __name__ == "__main__":
@@ -267,7 +342,28 @@ if __name__ == "__main__":
         check_status()
     elif cmd == "ready":
         tasks = load_tasks()
-        for t in get_ready_tasks(tasks):
-            print(f"  {t['id']}: {t['title']}")
+        ready = get_ready_tasks(tasks)
+        if ready:
+            for t in ready:
+                print(f"  READY: {t['id']}: {t['title']}")
+        else:
+            print("  No tasks ready. Run 'status' or 'mark-done <id>' first.")
+    elif cmd == "mark-done":
+        if len(sys.argv) < 3:
+            print("Usage: manager.py mark-done <task-id>")
+            sys.exit(1)
+        mark_done(sys.argv[2])
+    elif cmd == "add-task":
+        if len(sys.argv) < 6:
+            print("Usage: manager.py add-task <id> <title> <agent> <area> [depends_on]")
+            sys.exit(1)
+        add_task(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5],
+                 sys.argv[6] if len(sys.argv) > 6 else None)
     else:
-        print("Usage: manager.py [dispatch|status|ready]")
+        print("Usage: manager.py <command> [args]")
+        print("Commands:")
+        print("  dispatch                  Dispatch ready tasks to agents")
+        print("  status                    Check dispatched tasks for completion")
+        print("  ready                     List tasks ready to dispatch")
+        print("  mark-done <task-id>       Manually mark a task as done")
+        print("  add-task <id> <title> <agent> <area> [depends_on]")
