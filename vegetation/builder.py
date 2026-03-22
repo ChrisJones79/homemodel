@@ -137,7 +137,7 @@ class VegetationBuilder:
                 else:
                     entities_updated += 1
                 entities.append(entity)
-            except Exception as exc:  # noqa: BLE001
+            except (ValueError, KeyError, TypeError) as exc:
                 errors.append({"entity_id": entity_id, "message": str(exc)})
 
         build_record: dict[str, Any] = {
