@@ -55,3 +55,161 @@ tasks:
   issue_number: 12
   status: done
   title: FastAPI skeleton with GET /scene/manifest
+
+- acceptance:
+  - pytest terrain/ --tb=short -v passes
+  - Generates a TerrainPatch entity matching the terrain_patch fixture format
+  - BuildRecord logged for every generation run
+  agent: copilot
+  area: 2
+  custom_agent: terrain-builder
+  depends_on: schema-001
+  description: 'Implement TerrainBuilder in terrain/builder.py and elevation grid
+    parsing in terrain/elevation.py.
+
+
+    Follow the TerrainPatch and BuildRecord surfaces in contracts/domains_to_schema.yaml.
+
+    Use the terrain_patch test fixture as the canonical output shape.
+
+    In stub mode use fixture elevation values — no network calls.
+
+    Scene origin: lat 42.98743, lon -70.98709, alt_m 26.8.
+
+    Output triangulated mesh as vertices + faces.
+
+    Log a BuildRecord after every generation run.
+
+    '
+  id: terrain-001
+  status: pending
+  title: Implement TerrainBuilder and elevation grid parsing
+
+- acceptance:
+  - pytest structures/ --tb=short -v passes
+  - Generates a StructureEntity with walls and openings matching the contract
+  - parent_id links walls/rooms to their parent structure
+  agent: claude
+  area: 3
+  custom_agent: structure-builder
+  depends_on: schema-001
+  description: 'Implement StructureBuilder in structures/builder.py and wall/room
+    extrusion logic in structures/extrude.py.
+
+
+    Follow the StructureEntity and BuildRecord surfaces in contracts/domains_to_schema.yaml.
+
+    Structures are hierarchical: structure -> walls -> rooms.
+
+    Openings (doors, windows) are stored on walls with position offsets.
+
+    All dimensions in meters; floor_level: 0=ground, -1=basement, 1=second.
+
+    Provenance tracks which measurements contributed to each entity.
+
+    Log a BuildRecord after every compile run.
+
+    '
+  id: structure-001
+  status: pending
+  title: Implement StructureBuilder with wall/room extrusion
+
+- acceptance:
+  - pytest vegetation/ --tb=short -v passes
+  - Generates a VegetationEntity matching the tree_white_pine fixture format
+  - BuildRecord logged for every catalog run
+  agent: copilot
+  area: 4
+  custom_agent: vegetation-builder
+  depends_on: schema-001
+  description: 'Implement VegetationBuilder in vegetation/builder.py and canopy shape
+    definitions in vegetation/canopy.py.
+
+
+    Follow the VegetationEntity and BuildRecord surfaces in contracts/domains_to_schema.yaml.
+
+    Use the tree_white_pine test fixture as the canonical output shape.
+
+    Individual trees are first-class entities — not grouped or simplified.
+
+    Required fields: position_gps, height_m, canopy_radius_m, canopy_shape.
+
+    canopy_shape enum: round, conical, spreading, columnar, irregular.
+
+    health enum: healthy, stressed, dead, unknown.
+
+    Log a BuildRecord after every catalog run.
+
+    '
+  id: vegetation-001
+  status: pending
+  title: Implement VegetationBuilder and canopy shapes
+
+- acceptance:
+  - pytest ingestion/ --tb=short -v passes
+  - Validation catches bad input (missing required fields, invalid enum values)
+  - In stub mode SchemaStore calls are mocked but pipeline logic executes fully
+  agent: claude
+  area: 6
+  custom_agent: ingestion-builder
+  depends_on: schema-001
+  description: 'Implement the Ingestion pipeline in ingestion/pipeline.py and validation
+    logic in ingestion/validate.py.
+
+
+    Follow the Measurement, ImageRecord, EntityBatch, and ValidationResult surfaces
+    in contracts/ingestion_to_schema.yaml.
+
+    Validation must run before every submit — no unvalidated data enters SchemaStore.
+
+    Measurement types: laser_p2p, gps_point, image_derived, drone_telemetry.
+
+    Image source types: phone, drone_aerial, drone_ground, dslr, scan.
+
+    Bulk import requires a conflict_strategy: skip, overwrite, or version_bump.
+
+    Provenance is mandatory on all measurements.
+
+    Use the laser_measurement and drone_image test fixtures.
+
+    '
+  id: ingestion-001
+  status: pending
+  title: Implement Ingestion pipeline with measurement and image submission
+
+- acceptance:
+  - Scene loads in browser with no console errors
+  - Terrain visible using stub fixture data
+  - Navigation menu populated from ViewpointList fixture
+  - WebXR handoff compiles without error
+  agent: copilot
+  area: 5
+  custom_agent: viewer-builder
+  depends_on: backend-001
+  description: 'Implement the Three.js 3D viewer with scene loading, tile management,
+    and navigation.
+
+
+    Follow the SceneManifest, SceneTile, EntityMesh, and ViewpointList surfaces in
+    contracts/backend_to_viewer.yaml.
+
+    Follow the XRSessionConfig and XRSceneHandoff surfaces in contracts/viewer_to_webxr.yaml.
+
+    Implement scene loader in viewer/scene.js.
+
+    Implement tile manager in viewer/tiles.js.
+
+    Implement navigation menu from ViewpointList in viewer/nav.js.
+
+    In stub mode fetch from local fixture files — no live backend required.
+
+    Y-up coordinate system, meters, scene origin GPS: lat 42.98743, lon -70.98709, alt_m 26.8.
+
+    Three.js for all rendering; glTF/GLB for all mesh data.
+
+    WebXR session must share the Three.js Scene — no duplication.
+
+    '
+  id: viewer-001
+  status: pending
+  title: Implement Three.js scene loader, tile manager, and nav menu
