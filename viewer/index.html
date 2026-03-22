@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HomeModel 3D Viewer</title>
 
-  <!-- Three.js import map — resolves bare specifiers used in all JS modules -->
+  <!-- Three.js import map — resolves bare specifiers used in all JS modules.
+       Paths point to a vendored copy so the viewer works offline / in stub mode
+       without any CDN access. -->
   <script type="importmap">
   {
     "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      "three": "./vendor/three/build/three.module.js",
+      "three/addons/": "./vendor/three/examples/jsm/"
     }
   }
   </script>
