@@ -84,7 +84,11 @@ class TestGetEntity:
     def test_roundtrip_position_gps(self, store, entity_tree):
         store.upsert_entity(entity_tree)
         fetched = store.get_entity(entity_tree["id"])
-        assert fetched["position_gps"] == pytest.approx(entity_tree["position_gps"])
+        gps = fetched["position_gps"]
+        expected = entity_tree["position_gps"]
+        assert gps["lat"] == pytest.approx(expected["lat"])
+        assert gps["lon"] == pytest.approx(expected["lon"])
+        assert gps["alt_m"] == pytest.approx(expected["alt_m"])
 
     def test_roundtrip_provenance(self, store, entity_tree):
         store.upsert_entity(entity_tree)
