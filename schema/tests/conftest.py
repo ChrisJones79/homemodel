@@ -1,0 +1,36 @@
+"""
+Shared pytest fixtures for the schema test suite.
+
+Fixtures mirror the test_fixtures defined in contracts/schema_to_backend.yaml.
+"""
+from __future__ import annotations
+
+import pytest
+
+from schema.store import SchemaStore
+
+
+@pytest.fixture
+def entity_tree() -> dict:
+    """Canonical tree entity from the schema_to_backend contract fixture."""
+    return {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "type": "tree",
+        "geometry": [[42.98750, -70.98720], [42.98750, -70.98719]],
+        "position_gps": {"lat": 42.98750, "lon": -70.98720, "alt_m": 28.0},
+        "provenance": {
+            "source_type": "manual",
+            "source_id": "initial_survey",
+            "timestamp": "2026-03-18T12:00:00Z",
+            "accuracy_m": 1.0,
+        },
+        "version": 1,
+        "properties": {"species": "white_oak", "dbh_cm": 85, "canopy_radius_m": 8.5},
+    }
+
+
+@pytest.fixture
+def store() -> SchemaStore:
+    """Fresh in-memory SchemaStore for each test."""
+    with SchemaStore(":memory:") as s:
+        yield s
