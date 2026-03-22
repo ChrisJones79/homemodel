@@ -15,27 +15,17 @@ from typing import Any
 from terrain.elevation import (
     ElevationGrid,
     SCENE_LAT,
-    SCENE_LON,
-    SCENE_ALT_M,
     compute_slope_avg_deg,
     parse_geotiff,
     triangulate,
 )
-
-# ---------------------------------------------------------------------------
-# Scene origin (WGS84) — imported from elevation.py (single source of truth)
-# ---------------------------------------------------------------------------
-
-_SCENE_LAT   = SCENE_LAT
-_SCENE_LON   = SCENE_LON
-_SCENE_ALT_M = SCENE_ALT_M
 
 # Approximate metres-per-degree at the scene latitude.
 # 1° latitude  ≈ 111 320 m (uniform globally to <0.3 %).
 # 1° longitude ≈ 111 320 m × cos(lat).  cos(42.98743°) computed at import time.
 import math as _math
 _M_PER_DEG_LAT = 111_320.0
-_M_PER_DEG_LON = 111_320.0 * _math.cos(_math.radians(_SCENE_LAT))
+_M_PER_DEG_LON = 111_320.0 * _math.cos(_math.radians(SCENE_LAT))
 
 
 # ---------------------------------------------------------------------------
@@ -187,22 +177,6 @@ class TerrainBuilder:
             "errors": [],
         }
 
-        if hasattr(self._store, "log_build"):
-            self._store.log_build(build_record)
-        else:
-            # Fallback: store as a plain entity so the record is not lost.
-            # This should not normally happen once log_build() is added to
-            # SchemaStore, but keeps the builder functional regardless.
-            build_record.setdefault("type", "build_record")
-            build_record.setdefault("geometry", {})
-            build_record.setdefault("position_gps", {
-                "lat": _SCENE_LAT, "lon": _SCENE_LON, "alt_m": _SCENE_ALT_M
-            })
-            build_record.setdefault("provenance", {
-                "source_type": "terrain_builder",
-                "source_id": "build_log",
-                "timestamp": now_iso,
-            })
-            self._store.upsert_entity(build_record)
+        self._store.log_build(build_record)
 
         return [patch]
