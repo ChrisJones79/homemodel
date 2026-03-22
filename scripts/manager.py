@@ -19,8 +19,8 @@ LOG_FILE = Path(__file__).parent / "manager.log"
 
 AGENT_MAP = {
     "copilot": "copilot-swe-agent",
-    "claude": "claude",
-    "codex": "codex",
+    "claude": "anthropic-code-agent",
+    "codex": "openai-code-agent",
 }
 
 
