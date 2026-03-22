@@ -291,6 +291,40 @@ def dispatch_ready_tasks():
     save_tasks(tasks)
 
 
+def get_issue_state(issue_number):
+    """Fetch issue state and stateReason via GraphQL."""
+    owner, name = REPO.split("/", 1)
+    query = f'''
+    query($number: Int!) {{
+      repository(owner: "{owner}", name: "{name}") {{
+        issue(number: $number) {{
+          title
+          state
+          stateReason
+        }}
+      }}
+    }}
+    '''
+    result = subprocess.run(
+        [
+            "gh", "api", "graphql",
+            "-f", f"query={query}",
+            "-F", f"number={issue_number}",
+        ],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        return None, result.stderr.strip()
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError as e:
+        return None, f"Invalid JSON response: {e}"
+    if "errors" in data:
+        return None, str(data["errors"])
+    issue = data["data"]["repository"]["issue"]
+    return issue, None
+
+
 def check_status():
     """Check dispatched tasks for completion by inspecting issue state."""
     tasks = load_tasks()
@@ -303,18 +337,12 @@ def check_status():
             log(f"  SKIP: {task['id']} has no issue_number")
             continue
 
-        # Check if the GitHub issue is closed
-        result = subprocess.run(
-            ["gh", "issue", "view", str(issue_num),
-             "--repo", REPO,
-             "--json", "state,stateReason,title"],
-            capture_output=True, text=True
-        )
-        if result.returncode != 0:
-            log(f"  ERROR: Could not fetch issue #{issue_num}: {result.stderr.strip()}")
+        # Check if the GitHub issue is closed (via GraphQL to support stateReason)
+        issue_data, err = get_issue_state(issue_num)
+        if err:
+            log(f"  ERROR: Could not fetch issue #{issue_num}: {err}")
             continue
 
-        issue_data = json.loads(result.stdout)
         state = issue_data.get("state", "")
         reason = issue_data.get("stateReason", "")
 
