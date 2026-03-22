@@ -240,11 +240,16 @@ def add_task(task_id, title, agent, area, depends_on=None):
     if agent not in AGENT_MAP:
         log(f"ERROR: Agent must be one of {list(AGENT_MAP.keys())}")
         sys.exit(1)
+    try:
+        area_int = int(area)
+    except (TypeError, ValueError):
+        log(f"ERROR: Area must be an integer, got {area!r}")
+        sys.exit(1)
     new_task = {
         "id": task_id,
         "title": title,
         "agent": agent,
-        "area": int(area),
+        "area": area_int,
         "status": "pending",
         "description": f"TODO: Fill in description for {title}\n",
         "acceptance": ["TODO: Add acceptance criteria"],
