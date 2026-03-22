@@ -83,13 +83,14 @@ from pathlib import Path
 from datetime import datetime
 
 REPO = "ChrisJones79/homemodel"
+BASE_BRANCH = "master"
 TASKS_FILE = Path(__file__).parent / "tasks.yaml"
 LOG_FILE = Path(__file__).parent / "manager.log"
 
 AGENT_MAP = {
     "copilot": "copilot-swe-agent",
-    "claude": "claude",
-    "codex": "codex",
+    "claude": "anthropic-code-agent",
+    "codex": "openai-code-agent",
 }
 
 
@@ -148,17 +149,134 @@ def create_issue(task):
     return int(number)
 
 
-def assign_agent(issue_number, agent_name):
-    """Assign the agent to the issue."""
-    agent_login = AGENT_MAP[agent_name]
-    subprocess.run(
+def get_repo_and_bot_ids():
+    """Fetch the repository node ID and a login→id map of assignable actors."""
+    query = '''
+    query {
+      repository(owner: "ChrisJones79", name: "homemodel") {
+        id
+        suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) {
+          nodes {
+            login
+            __typename
+            ... on Bot { id }
+            ... on User { id }
+          }
+        }
+      }
+    }
+    '''
+    result = subprocess.run(
+        ["gh", "api", "graphql", "-f", f"query={query}"],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        log(f"  ✗ Failed to fetch repo/bot IDs: {result.stderr}")
+        return None, {}
+    data = json.loads(result.stdout)
+    if "errors" in data:
+        log(f"  ✗ GraphQL errors fetching repo/bot IDs: {data['errors']}")
+        return None, {}
+    repo_id = data["data"]["repository"]["id"]
+    actors = data["data"]["repository"]["suggestedActors"]["nodes"]
+    bot_map = {a["login"]: a["id"] for a in actors}
+    return repo_id, bot_map
+
+
+def get_issue_id(issue_number):
+    """Fetch the GraphQL node ID for an issue number."""
+    query = '''
+    query($number: Int!) {
+      repository(owner: "ChrisJones79", name: "homemodel") {
+        issue(number: $number) {
+          id
+        }
+      }
+    }
+    '''
+    result = subprocess.run(
         [
-            "gh", "issue", "edit", str(issue_number),
-            "--repo", REPO,
-            "--add-assignee", agent_login,
+            "gh", "api", "graphql",
+            "-f", f"query={query}",
+            "-F", f"number={issue_number}",
         ],
         capture_output=True, text=True
     )
+    if result.returncode != 0:
+        log(f"  ✗ Failed to fetch issue ID: {result.stderr}")
+        return None
+    data = json.loads(result.stdout)
+    if "errors" in data:
+        log(f"  ✗ GraphQL errors fetching issue ID: {data['errors']}")
+        return None
+    return data["data"]["repository"]["issue"]["id"]
+
+
+def assign_agent(issue_number, task):
+    """Assign a coding agent to an issue via GraphQL."""
+    repo_id, bot_map = get_repo_and_bot_ids()
+    if not repo_id:
+        return False
+
+    issue_id = get_issue_id(issue_number)
+    if not issue_id:
+        return False
+
+    agent_name = task["agent"]
+    bot_id = bot_map.get(AGENT_MAP[agent_name])
+    if not bot_id:
+        log(f"  ⚠ Agent '{agent_name}' not found in suggestedActors. Available: {list(bot_map.keys())}")
+        return False
+
+    custom_agent = task.get("custom_agent", "")
+    mutation = '''
+    mutation($issueId: ID!, $botId: ID!, $repoId: ID!, $baseRef: String!, $customAgent: String!) {
+      addAssigneesToAssignable(input: {
+        assignableId: $issueId,
+        assigneeIds: [$botId],
+        agentAssignment: {
+          targetRepositoryId: $repoId,
+          baseRef: $baseRef,
+          customInstructions: "",  # reserved for future per-task instructions
+          customAgent: $customAgent,
+          model: ""  # empty uses the agent's default model
+        }
+      }) {
+        assignable {
+          ... on Issue {
+            id
+            assignees(first: 10) {
+              nodes { login }
+            }
+          }
+        }
+      }
+    }
+    '''
+    result = subprocess.run(
+        [
+            "gh", "api", "graphql",
+            "-f", f"query={mutation}",
+            "-F", f"issueId={issue_id}",
+            "-F", f"botId={bot_id}",
+            "-F", f"repoId={repo_id}",
+            "-F", f"baseRef={BASE_BRANCH}",
+            "-F", f"customAgent={custom_agent}",
+            "-H", "GraphQL-Features: issues_copilot_assignment_api_support,coding_agent_model_selection",
+        ],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        log(f"  ✗ GraphQL assignment failed: {result.stderr}")
+        return False
+
+    data = json.loads(result.stdout)
+    if "errors" in data:
+        log(f"  ✗ GraphQL errors: {data['errors']}")
+        return False
+
+    log(f"  ✓ Agent assigned via GraphQL")
+    return True
 
 
 def dispatch_ready_tasks():
@@ -173,10 +291,12 @@ def dispatch_ready_tasks():
     for task in ready:
         log(f"Dispatching: {task['id']} — {task['title']}")
         issue_num = create_issue(task)
-        assign_agent(issue_num, task["agent"])
-        task["status"] = "dispatched"
         task["issue_number"] = issue_num
-        log(f"  → Issue #{issue_num} assigned to @{task['agent']}")
+        if assign_agent(issue_num, task):
+            task["status"] = "dispatched"
+            log(f"  → Issue #{issue_num} assigned to @{task['agent']}")
+        else:
+            log(f"  ⚠ Assignment failed for #{issue_num}; task left as pending for retry")
 
     save_tasks(tasks)
 
@@ -243,6 +363,11 @@ python scripts/manager.py status
   fails silently, switch to the GraphQL mutation. This is a known rough edge.
 - The script is intentionally simple. Extend it only when you hit a real need.
 - Task dependencies are single-parent only. That's enough for now.
+
+### Update
+I updated `manager.py`, reflected above, after getting the correct agent login ids.
+
+I don't have it working correctly as tasks.yaml isn't updated after the task inside it was completed.
 
 ## Checkpoint
 
