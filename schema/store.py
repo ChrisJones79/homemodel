@@ -44,6 +44,18 @@ CREATE TABLE IF NOT EXISTS entity_history (
 );
 """
 
+_CREATE_BUILD_RECORDS = """
+CREATE TABLE IF NOT EXISTS build_records (
+    id               TEXT PRIMARY KEY,
+    domain           TEXT NOT NULL,
+    timestamp        TEXT NOT NULL,     -- ISO-8601
+    source_inputs    TEXT NOT NULL,     -- JSON array
+    entities_written INTEGER NOT NULL DEFAULT 0,
+    entities_updated INTEGER NOT NULL DEFAULT 0,
+    errors           TEXT NOT NULL DEFAULT '[]'  -- JSON array
+);
+"""
+
 
 class SchemaStore:
     """SQLite-backed entity store.
@@ -70,6 +82,7 @@ class SchemaStore:
         with self._conn:
             self._conn.execute(_CREATE_ENTITIES)
             self._conn.execute(_CREATE_HISTORY)
+            self._conn.execute(_CREATE_BUILD_RECORDS)
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
@@ -342,6 +355,74 @@ class SchemaStore:
             for r in rows
         ]
         return {"id": id, "revisions": revisions}
+
+    # ------------------------------------------------------------------
+    # Surface 5 — log_build  (BuildRecord)
+    # ------------------------------------------------------------------
+
+    def log_build(self, record: dict) -> dict[str, Any]:
+        """Persist a BuildRecord produced by a domain builder.
+
+        Parameters
+        ----------
+        record:
+            Dict with keys: id, domain, timestamp, source_inputs,
+            entities_written, entities_updated, errors.
+
+        Returns
+        -------
+        ``{"id": str, "status": "logged"}``
+        """
+        required = ("id", "domain", "timestamp")
+        missing = [f for f in required if f not in record]
+        if missing:
+            raise ValueError(f"BuildRecord is missing required fields: {missing}")
+
+        record_id: str = record["id"]
+        with self._conn:
+            self._conn.execute(
+                """
+                INSERT OR REPLACE INTO build_records
+                    (id, domain, timestamp, source_inputs,
+                     entities_written, entities_updated, errors)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    record_id,
+                    record["domain"],
+                    record["timestamp"],
+                    json.dumps(record.get("source_inputs", [])),
+                    int(record.get("entities_written", 0)),
+                    int(record.get("entities_updated", 0)),
+                    json.dumps(record.get("errors", [])),
+                ),
+            )
+        return {"id": record_id, "status": "logged"}
+
+    def get_build_records(self, domain: str | None = None) -> list[dict[str, Any]]:
+        """Return all logged BuildRecords, optionally filtered by *domain*."""
+        if domain is not None:
+            rows = self._conn.execute(
+                "SELECT * FROM build_records WHERE domain = ? ORDER BY timestamp DESC",
+                (domain,),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT * FROM build_records ORDER BY timestamp DESC"
+            ).fetchall()
+
+        return [
+            {
+                "id": r["id"],
+                "domain": r["domain"],
+                "timestamp": r["timestamp"],
+                "source_inputs": json.loads(r["source_inputs"]),
+                "entities_written": r["entities_written"],
+                "entities_updated": r["entities_updated"],
+                "errors": json.loads(r["errors"]),
+            }
+            for r in rows
+        ]
 
     # ------------------------------------------------------------------
     # Convenience
