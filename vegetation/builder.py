@@ -116,15 +116,26 @@ class VegetationBuilder:
         entities_written = 0
         entities_updated = 0
 
-        # Build source_inputs audit list
+        # Build source_inputs audit list — prefer entity or source IDs from the
+        # raw data so the build record is traceable back to specific inputs.
         source_inputs: list[dict[str, Any]] = [
-            {"type": "survey_data", "id": f"survey_{i}", "path": ""}
-            for i in range(len(survey_data))
+            {
+                "type": "survey_data",
+                "id": tree.get("id") or tree.get("source_id") or f"survey_{i}",
+                "path": tree.get("source_path", ""),
+            }
+            for i, tree in enumerate(survey_data)
         ]
         if aerial_images:
             source_inputs += [
-                {"type": "aerial_image", "id": f"image_{i}", "path": ""}
-                for i in range(len(aerial_images))
+                {
+                    "type": "aerial_image",
+                    "id": (
+                        img.get("id") if isinstance(img, dict) else str(img)
+                    ) or f"image_{i}",
+                    "path": img.get("path", "") if isinstance(img, dict) else "",
+                }
+                for i, img in enumerate(aerial_images)
             ]
 
         for i, tree_data in enumerate(survey_data):
