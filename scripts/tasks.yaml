@@ -19,7 +19,7 @@ tasks:
     '
   id: schema-001
   issue_number: 1
-  status: dispatched
+  status: done
   title: Implement SchemaStore.upsert_entity and get_entity
 - acceptance:
   - pytest schema/tests/ passes
@@ -34,7 +34,8 @@ tasks:
 
     '
   id: schema-002
-  status: pending
+  issue_number: 11
+  status: dispatched
   title: Implement SchemaStore.query_region
 - acceptance:
   - curl localhost:8000/scene/manifest returns valid JSON
@@ -51,5 +52,6 @@ tasks:
 
     '
   id: backend-001
-  status: pending
+  issue_number: 12
+  status: dispatched
   title: FastAPI skeleton with GET /scene/manifest
