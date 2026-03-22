@@ -2,3 +2,26 @@
 [2026-03-21T20:00:41.769267]   → Issue #1 assigned to @claude
 [2026-03-22T06:06:01.276276] No tasks ready to dispatch.
 [2026-03-22T06:10:18.031880] No tasks ready to dispatch.
+[2026-03-22T14:25:51.400485]   DONE: schema-001 (issue #1 closed as completed)
+[2026-03-22T14:25:51.402434] Tasks updated.
+[2026-03-22T14:26:24.250288] Dispatching: schema-002 — Implement SchemaStore.query_region
+[2026-03-22T14:26:26.857537]   ✓ Agent assigned via GraphQL
+[2026-03-22T14:26:26.857664]   → Issue #11 assigned to @claude
+[2026-03-22T14:26:26.857728] Dispatching: backend-001 — FastAPI skeleton with GET /scene/manifest
+[2026-03-22T14:26:29.460176]   ✓ Agent assigned via GraphQL
+[2026-03-22T14:26:29.460336]   → Issue #12 assigned to @copilot
+[2026-03-22T14:28:04.488422]   OPEN: schema-002 issue #11 still open
+[2026-03-22T14:28:04.719003]   OPEN: backend-001 issue #12 still open
+[2026-03-22T14:28:04.719102] No status changes detected.
+[2026-03-22T14:29:03.391468]   OPEN: schema-002 issue #11 still open
+[2026-03-22T14:29:03.760166]   OPEN: backend-001 issue #12 still open
+[2026-03-22T14:29:03.760289] No status changes detected.
+[2026-03-22T14:29:58.509991]   OPEN: schema-002 issue #11 still open
+[2026-03-22T14:29:58.988384]   OPEN: backend-001 issue #12 still open
+[2026-03-22T14:29:58.988514] No status changes detected.
+[2026-03-22T14:32:04.104931]   OPEN: schema-002 issue #11 still open
+[2026-03-22T14:32:04.370674]   OPEN: backend-001 issue #12 still open
+[2026-03-22T14:32:04.370793] No status changes detected.
+[2026-03-22T14:32:25.117672]   OPEN: schema-002 issue #11 still open
+[2026-03-22T14:32:25.355986]   OPEN: backend-001 issue #12 still open
+[2026-03-22T14:32:25.356080] No status changes detected.
