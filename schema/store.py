@@ -44,6 +44,18 @@ CREATE TABLE IF NOT EXISTS entity_history (
 );
 """
 
+_CREATE_BUILD_RECORDS = """
+CREATE TABLE IF NOT EXISTS build_records (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    domain           TEXT NOT NULL,
+    timestamp        TEXT NOT NULL,
+    source_inputs    TEXT NOT NULL DEFAULT '[]',   -- JSON array
+    entities_written INTEGER NOT NULL DEFAULT 0,
+    entities_updated INTEGER NOT NULL DEFAULT 0,
+    errors           TEXT NOT NULL DEFAULT '[]'    -- JSON array
+);
+"""
+
 
 class SchemaStore:
     """SQLite-backed entity store.
@@ -70,6 +82,7 @@ class SchemaStore:
         with self._conn:
             self._conn.execute(_CREATE_ENTITIES)
             self._conn.execute(_CREATE_HISTORY)
+            self._conn.execute(_CREATE_BUILD_RECORDS)
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
@@ -342,6 +355,94 @@ class SchemaStore:
             for r in rows
         ]
         return {"id": id, "revisions": revisions}
+
+    # ------------------------------------------------------------------
+    # Surface 5 — log_build  (BuildRecord, domains_to_schema contract)
+    # ------------------------------------------------------------------
+
+    def log_build(self, build_record: dict) -> dict[str, Any]:
+        """Persist a domain build record.
+
+        Parameters
+        ----------
+        build_record:
+            Dict matching the BuildRecord contract fields::
+
+                {
+                    "domain":            str,   # "terrain" | "structures" | "vegetation"
+                    "timestamp":         str,   # ISO-8601
+                    "source_inputs":     list,  # [{type, id, path}, ...]
+                    "entities_written":  int,
+                    "entities_updated":  int,
+                    "errors":            list,  # [{entity_id, message}, ...]
+                }
+
+        Returns
+        -------
+        The stored record dict with an additional ``"id"`` key (auto-increment
+        integer assigned by the database).
+        """
+        required = ("domain", "timestamp", "entities_written", "entities_updated")
+        missing = [f for f in required if f not in build_record]
+        if missing:
+            raise ValueError(f"BuildRecord is missing required fields: {missing}")
+
+        with self._conn:
+            cursor = self._conn.execute(
+                """
+                INSERT INTO build_records
+                    (domain, timestamp, source_inputs,
+                     entities_written, entities_updated, errors)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    build_record["domain"],
+                    build_record["timestamp"],
+                    json.dumps(build_record.get("source_inputs", [])),
+                    build_record["entities_written"],
+                    build_record["entities_updated"],
+                    json.dumps(build_record.get("errors", [])),
+                ),
+            )
+        return {**build_record, "id": cursor.lastrowid}
+
+    def get_build_records(
+        self,
+        domain: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return all stored build records, optionally filtered by domain.
+
+        Parameters
+        ----------
+        domain:
+            When provided only records for that domain are returned.
+
+        Returns
+        -------
+        List of build record dicts ordered by ``id`` ascending.
+        """
+        if domain is not None:
+            rows = self._conn.execute(
+                "SELECT * FROM build_records WHERE domain = ? ORDER BY id ASC",
+                (domain,),
+            ).fetchall()
+        else:
+            rows = self._conn.execute(
+                "SELECT * FROM build_records ORDER BY id ASC"
+            ).fetchall()
+
+        return [
+            {
+                "id": r["id"],
+                "domain": r["domain"],
+                "timestamp": r["timestamp"],
+                "source_inputs": json.loads(r["source_inputs"]),
+                "entities_written": r["entities_written"],
+                "entities_updated": r["entities_updated"],
+                "errors": json.loads(r["errors"]),
+            }
+            for r in rows
+        ]
 
     # ------------------------------------------------------------------
     # Convenience
