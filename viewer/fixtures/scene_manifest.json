@@ -1,0 +1,13 @@
+{
+  "bounds_gps": {
+    "sw": {"lat": 42.98643, "lon": -70.98809},
+    "ne": {"lat": 42.98843, "lon": -70.98609}
+  },
+  "origin_gps": {"lat": 42.98743, "lon": -70.98709, "alt_m": 26.8},
+  "entity_count": 47,
+  "lod_levels": [
+    {"level": 0, "max_distance_m": 50, "mesh_url": "/scene/tiles/0/0/0.glb"},
+    {"level": 1, "max_distance_m": 200, "mesh_url": "/scene/tiles/1/0/0.glb"}
+  ],
+  "last_updated": "2026-03-18T14:00:00Z"
+}
