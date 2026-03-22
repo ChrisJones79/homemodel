@@ -1,0 +1,25 @@
+{
+  "viewpoints": [
+    {
+      "id": "vp-front-door",
+      "label": "Front Door",
+      "position_gps": {"lat": 42.98740, "lon": -70.98705, "alt_m": 27.3},
+      "look_at_gps": {"lat": 42.98740, "lon": -70.98700, "alt_m": 27.3},
+      "indoor": false
+    },
+    {
+      "id": "vp-backyard",
+      "label": "Backyard",
+      "position_gps": {"lat": 42.98730, "lon": -70.98715, "alt_m": 27.0},
+      "look_at_gps": {"lat": 42.98735, "lon": -70.98709, "alt_m": 27.0},
+      "indoor": false
+    },
+    {
+      "id": "vp-living-room",
+      "label": "Living Room",
+      "position_gps": {"lat": 42.98743, "lon": -70.98709, "alt_m": 29.2},
+      "look_at_gps": {"lat": 42.98743, "lon": -70.98705, "alt_m": 29.2},
+      "indoor": true
+    }
+  ]
+}
