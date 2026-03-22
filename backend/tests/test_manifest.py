@@ -1,12 +1,11 @@
 """
 Tests for backend/main.py — SceneManifest and ViewpointList endpoints.
 
-All tests run in stub mode, which returns fixture data matching the
+All stub-mode tests run against fixture data matching the
 contracts/backend_to_viewer.yaml test_fixtures section.
+Real-mode tests use an in-memory SchemaStore seeded with a single entity.
 """
 from __future__ import annotations
-
-import os
 
 import pytest
 from fastapi.testclient import TestClient
@@ -20,13 +19,35 @@ from fastapi.testclient import TestClient
 @pytest.fixture(scope="module")
 def stub_client():
     """TestClient wired to the app in stub mode."""
-    os.environ["HOMEMODEL_MODE"] = "stub"
-
-    # Import *after* setting the env-var so create_app() picks up "stub".
     from backend.main import create_app  # noqa: PLC0415
 
     test_app = create_app(mode="stub")
     with TestClient(test_app) as client:
+        yield client
+
+
+@pytest.fixture
+def real_client():
+    """TestClient wired to the app in real mode with a seeded in-memory store."""
+    from backend.main import create_app  # noqa: PLC0415
+
+    test_app = create_app(mode="real")
+    with TestClient(test_app) as client:
+        # Seed the in-memory store after lifespan startup.
+        test_app.state.store.upsert_entity(
+            {
+                "id": "test-tree-1",
+                "type": "tree",
+                "geometry": [[42.98743, -70.98709]],
+                "position_gps": {"lat": 42.98743, "lon": -70.98709, "alt_m": 26.8},
+                "provenance": {
+                    "source_type": "test",
+                    "source_id": "seed",
+                    "timestamp": "2026-01-01T00:00:00Z",
+                    "accuracy_m": 1.0,
+                },
+            }
+        )
         yield client
 
 
@@ -161,6 +182,34 @@ class TestNavViewpoints:
         assert front_door["position_gps"]["lat"] == pytest.approx(42.98740)
         assert front_door["position_gps"]["lon"] == pytest.approx(-70.98705)
         assert front_door["position_gps"]["alt_m"] == pytest.approx(27.3)
+
+
+# ---------------------------------------------------------------------------
+# GET /scene/manifest — real mode
+# ---------------------------------------------------------------------------
+
+
+class TestRealMode:
+    """Real-mode manifest: entity_count is drawn live from SchemaStore."""
+
+    def test_status_200(self, real_client: TestClient):
+        response = real_client.get("/scene/manifest")
+        assert response.status_code == 200, response.text
+
+    def test_all_fields_present(self, real_client: TestClient):
+        data = real_client.get("/scene/manifest").json()
+        required = {"bounds_gps", "origin_gps", "entity_count", "lod_levels", "last_updated"}
+        assert not required - data.keys()
+
+    def test_entity_count_reflects_store(self, real_client: TestClient):
+        data = real_client.get("/scene/manifest").json()
+        assert data["entity_count"] == 1
+
+    def test_last_updated_is_iso8601(self, real_client: TestClient):
+        from datetime import datetime
+
+        last_updated = real_client.get("/scene/manifest").json()["last_updated"]
+        datetime.fromisoformat(last_updated.replace("Z", "+00:00"))
 
 
 # ---------------------------------------------------------------------------

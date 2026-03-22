@@ -10,26 +10,21 @@ Mode is controlled by the HOMEMODEL_MODE environment variable:
   - "stub"  (default) — returns fixture data verbatim from the contract
   - "real"            — queries SchemaStore for live entity data
 
-CORS is enabled for all origins so the LAN viewer can reach the server.
+CORS allowed origins are configured via CORS_ALLOW_ORIGINS (comma-separated,
+defaults to "*" for unrestricted LAN access).
 """
 from __future__ import annotations
 
+import logging
 import os
-import sys
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# ---------------------------------------------------------------------------
-# Allow the repo root to be imported when the module is executed directly.
-# ---------------------------------------------------------------------------
-_REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
+_logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Pydantic response models — field names must match the contract exactly.
@@ -141,11 +136,38 @@ def create_app(mode: str | None = None) -> FastAPI:
     mode:
         Override HOMEMODEL_MODE for testing. When *None* (default) the value
         is read from the ``HOMEMODEL_MODE`` environment variable, falling back
-        to ``"stub"``.
+        to ``"stub"``. Any value not in ``{"stub", "real"}`` is silently
+        treated as ``"stub"``.
     """
-    resolved_mode: str = (
+    raw_mode: str = (
         mode if mode is not None else os.environ.get("HOMEMODEL_MODE", "stub")
     ).lower()
+    resolved_mode: str = raw_mode if raw_mode in {"stub", "real"} else "stub"
+
+    # CORS origins — comma-separated list, defaults to "*" for LAN access.
+    cors_env = os.environ.get("CORS_ALLOW_ORIGINS", "*")
+    cors_origins = [o.strip() for o in cors_env.split(",")]
+
+    # ------------------------------------------------------------------
+    # Lifespan: open SchemaStore once at startup, close on shutdown.
+    # ------------------------------------------------------------------
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        if resolved_mode == "real":
+            from schema.store import SchemaStore  # noqa: PLC0415
+
+            db_path = os.getenv("SCHEMASTORE_DB_PATH", ":memory:")
+            store = SchemaStore(db_path=db_path)
+            app.state.store = store
+            try:
+                yield
+            finally:
+                store.close()
+                app.state.store = None
+        else:
+            app.state.store = None
+            yield
 
     application = FastAPI(
         title="homemodel backend",
@@ -154,12 +176,13 @@ def create_app(mode: str | None = None) -> FastAPI:
             f"Running in {resolved_mode!r} mode."
         ),
         version="0.1.0",
+        lifespan=lifespan,
     )
 
-    # CORS — allow all origins so the LAN viewer (any IP) can reach the API.
+    # CORS middleware
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
         allow_credentials=False,
         allow_methods=["GET"],
         allow_headers=["*"],
@@ -186,9 +209,7 @@ def create_app(mode: str | None = None) -> FastAPI:
 
         # --- real mode ---
         try:
-            from schema.store import SchemaStore  # noqa: PLC0415
-
-            store = SchemaStore()
+            store = application.state.store
             bbox = {
                 "sw_lat": _REAL_BOUNDS.sw.lat,
                 "sw_lon": _REAL_BOUNDS.sw.lon,
@@ -197,10 +218,11 @@ def create_app(mode: str | None = None) -> FastAPI:
             }
             region = store.query_region(bbox)
             live_count: int = region["total_count"]
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:
+            _logger.error("SchemaStore error in /scene/manifest: %s", exc)
             raise HTTPException(
                 status_code=503,
-                detail=f"SchemaStore unavailable: {exc}",
+                detail="SchemaStore unavailable",
             ) from exc
 
         return SceneManifest(
