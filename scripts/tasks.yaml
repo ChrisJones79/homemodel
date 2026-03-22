@@ -1,0 +1,55 @@
+tasks:
+- acceptance:
+  - pytest schema/tests/ passes
+  - entity_tree fixture round-trips through upsert + get
+  agent: claude
+  area: 1
+  custom_agent: schema-builder
+  description: 'Implement the SchemaStore class in schema/store.py with:
+
+    - upsert_entity(entity: dict) -> UpsertResult
+
+    - get_entity(id: str) -> Entity
+
+
+    Use SQLite. Follow the Entity contract in contracts/schema_to_backend.yaml.
+
+    Test with the entity_tree fixture.
+
+    '
+  id: schema-001
+  issue_number: 1
+  status: dispatched
+  title: Implement SchemaStore.upsert_entity and get_entity
+- acceptance:
+  - pytest schema/tests/ passes
+  - Returns entities within bounding box
+  agent: claude
+  area: 1
+  custom_agent: schema-builder
+  depends_on: schema-001
+  description: 'Add query_region(bbox) to SchemaStore.
+
+    Follow the EntityList contract in contracts/schema_to_backend.yaml.
+
+    '
+  id: schema-002
+  status: pending
+  title: Implement SchemaStore.query_region
+- acceptance:
+  - curl localhost:8000/scene/manifest returns valid JSON
+  - Response matches SceneManifest contract
+  agent: copilot
+  area: 7
+  custom_agent: backend-builder
+  depends_on: schema-001
+  description: 'Create backend/main.py with FastAPI.
+
+    Implement GET /scene/manifest per contracts/backend_to_viewer.yaml.
+
+    In stub mode, return the scene_manifest fixture.
+
+    '
+  id: backend-001
+  status: pending
+  title: FastAPI skeleton with GET /scene/manifest

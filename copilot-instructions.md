@@ -3,7 +3,9 @@
 ## What This Project Is
 A locally-hosted, LAN-accessible 3D navigable model of a house and
 surrounding five-acre property. GPS coordinates and altitude are the
-absolute positioning system.
+absolute positioning system. The model is viewed in a browser using
+Three.js and optionally, WebXR routed to a VR headset, with a FastAPI 
+backend serving data from a SQLite.
 
 ## Architecture
 - Hybrid model: structured data (JSON/SQLite) → build step → glTF → Three.js
