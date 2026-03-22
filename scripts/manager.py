@@ -17,9 +17,9 @@ TASKS_FILE = Path(__file__).parent / "tasks.yaml"
 LOG_FILE = Path(__file__).parent / "manager.log"
 
 AGENT_MAP = {
-    "copilot": "copilot-swe-agent",
-    "claude": "claude",
-    "codex": "codex",
+    "copilot": "Copilot",
+    "claude": "claude-by-anthropic",
+    "codex": "Codex",
 }
 
 
