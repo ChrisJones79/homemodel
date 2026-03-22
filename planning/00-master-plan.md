@@ -7,6 +7,7 @@ You are the solo human. Three AI coding agents (Copilot, Claude, Codex) work in 
 ## Main Interface: VS Code
 
 VS Code is your cockpit. It connects to:
+
 - **GitHub Copilot** (inline suggestions + agent mode for interactive work)
 - **Claude cloud agent** (autonomous background sessions via Copilot integration)
 - **Codex cloud agent** (autonomous background sessions via Copilot integration)
@@ -15,7 +16,7 @@ VS Code is your cockpit. It connects to:
 
 ## The Loop
 
-```
+```sh
 ┌─────────────────────────────────────────────┐
 │  YOU (VS Code + Copilot Space)              │
 │  - Plan in Space chat                       │
@@ -36,7 +37,7 @@ VS Code is your cockpit. It connects to:
 ## Documents in This Vault
 
 | File | Purpose |
-|------|---------|
+| ------ | --------- |
 | [[00-master-plan]] | This file. The root. |
 | [[01-repo-setup]] | Step-by-step repo creation with checkboxes |
 | [[02-agent-config]] | Enabling agents, Spaces, custom agent files |
@@ -60,6 +61,7 @@ VS Code is your cockpit. It connects to:
 ## Restart Points
 
 When resuming after a break, check:
+
 1. [[05-progress-log]] — what's the current state?
 2. Open PRs on GitHub — anything waiting for review?
 3. Manager script logs — any failed tasks to re-queue?

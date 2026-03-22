@@ -29,6 +29,7 @@ mkdir -p scripts  # manager script lives here
 ## Step 3: Copy Contract Files
 
 Move your existing YAML files into `contracts/`:
+
 - `schema_to_backend.yaml`
 - `backend_to_viewer.yaml`
 - `ingestion_to_schema.yaml`
@@ -76,6 +77,7 @@ absolute positioning system.
 ## Step 5: Enable Agents
 
 On github.com:
+
 - [x] Go to Settings → Copilot → Coding agent
 - [x] Enable coding agent for the `homemodel` repo
 - [x] Under Partner Agents, enable **Claude** and **Codex**
@@ -93,32 +95,39 @@ gh api graphql -f query='
   }
 '
 ```
+
 ---
-# Failure Overcame (needed HTTPS URL not HTTPS as I had no ssh key setup when I `gh auth login` )
+
+## Failure Overcame (needed HTTPS URL not HTTPS as I had no ssh key setup when I `gh auth login` )
 
 Ok this failed. I ran through
 
-{  
- "data": {  
-   "repository": null  
- },  
- "errors": [  
-   {  
-     "type": "NOT_FOUND",  
-     "path": [  
-       "repository"  
-     ],  
-     "locations": [  
-       {  
-         "line": 3,  
-         "column": 5  
-       }  
-     ],  
-     "message": "Could not resolve to a Repository with the name 'ChrisJones79/homemodel'."  
-   }  
- ]  
-}  
+```json
+{
+ "data": {
+   "repository": null
+ },
+ "errors": [
+   {
+     "type": "NOT_FOUND",
+     "path": [
+       "repository"
+     ],
+     "locations": [
+       {
+         "line": 3,
+         "column": 5
+       }
+     ],
+     "message": "Could not resolve to a Repository with the name 'ChrisJones79/homemodel'."
+   }
+ ]
+}
+```
+
+```text
 gh: Could not resolve to a Repository with the name 'ChrisJones79/homemodel'.
+```
 
 > I assume there was no ?sync from my local dir to github as the following steps which populated the local dirs weren't done or commited yet. Now that they are, would I commit and push?
 
@@ -132,7 +141,9 @@ git push -u origin master
 
 Then retry that GraphQL query to verify.
 
-$ git add . git commit -m "Initial commit" git push -u origin master [master (root-commit) 453f5dd] Initial commit 6 files changed, 355 insertions(+) create mode 100644 contracts/backend_to_viewer.yaml create mode 100644 contracts/domains_to_schema.yaml create mode 100644 contracts/ingestion_to_schema.yaml create mode 100644 contracts/schema_to_backend.yaml create mode 100644 contracts/viewer_to_webxr.yaml create mode 100644 copilot-instructions.md fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
+```text
+git add . git commit -m "Initial commit" git push -u origin master [master (root-commit) 453f5dd] Initial commit 6 files changed, 355 insertions(+) create mode 100644 contracts/backend_to_viewer.yaml create mode 100644 contracts/domains_to_schema.yaml create mode 100644 contracts/ingestion_to_schema.yaml create mode 100644 contracts/schema_to_backend.yaml create mode 100644 contracts/viewer_to_webxr.yaml create mode 100644 copilot-instructions.md fatal: 'origin' does not appear to be a git repository fatal: Could not read from remote repository. Please make sure you have the correct access rights and the repository exists.
+```
 
 Check your remotes:
 
@@ -170,7 +181,9 @@ gh repo create homemodel --private --source=. --push
 
 Since you now have a commit, it should work end-to-end this time.
 
-$ gh repo create homemodel --private --source=. --push ✓ Created repository ChrisJones79/homemodel on GitHub  https://github.com/ChrisJones79/homemodel X Unable to add remote "origin"
+```text
+gh repo create homemodel --private --source=. --push ✓ Created repository ChrisJones79/homemodel on GitHub  <https://github.com/ChrisJones79/homemodel> X Unable to add remote "origin"
+```
 
 Remote already exists from your earlier `git remote add`. Just push:
 
@@ -178,16 +191,14 @@ Remote already exists from your earlier `git remote add`. Just push:
 git push -u origin master
 ```
 
-$ git push -u origin master Enumerating objects: 9, done. Counting objects: 100% (9/9), done. Delta compression using up to 20 threads Compressing objects: 100% (9/9), done. Writing objects: 100% (9/9), 6.07 KiB | 6.07 MiB/s, done. Total 9 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0) To https://github.com/ChrisJones79/homemodel.git * [new branch]      master -> master branch 'master' set up to track 'origin/master'.
+```text
+git push -u origin master Enumerating objects: 9, done. Counting objects: 100% (9/9), done. Delta compression using up to 20 threads Compressing objects: 100% (9/9), done. Writing objects: 100% (9/9), 6.07 KiB | 6.07 MiB/s, done. Total 9 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0) To <https://github.com/ChrisJones79/homemodel.git> * [new branch]      master -> master branch 'master' set up to track 'origin/master'.
+```
 
-# You're all set. Now retry that GraphQL query to verify agent access.
+## You're all set. Now retry that GraphQL query to verify agent access
 
 ---
 You should see `copilot-swe-agent` in the results. Claude and Codex appear as assignable agents in the Issue UI.
-
-
-
-
 
 ## Step 7: VS Code Extensions
 
@@ -220,6 +231,7 @@ This lets you access your Spaces from inside VS Code agent mode.
 ## Checkpoint
 
 After completing all steps above:
+
 - [x] Repo exists on GitHub with contract files
 - [x] `copilot-instructions.md` committed to root
 - [x] All three agents enabled

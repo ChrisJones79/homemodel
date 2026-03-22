@@ -3,6 +3,7 @@
 ## Purpose
 
 The manager script is a deterministic Python script (not AI-powered) that:
+
 1. Reads a task queue
 2. Creates GitHub Issues with the right context
 3. Assigns them to the best agent

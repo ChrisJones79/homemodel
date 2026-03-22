@@ -3,18 +3,20 @@
 ## What Skill Files Are
 
 Each work area has a skill file that defines:
+
 - **Goal** — what "done" looks like for the current increment
 - **Contracts** — which YAML files govern inputs/outputs
 - **Validation** — commands that prove the increment works
 - **Present** — what to show yourself (the "manager") to confirm quality
 
 Skill files serve double duty:
+
 1. **In the repo** as `.github/agents/*.agent.md` — agents read them
 2. **In Spaces** as instruction text — you reference them when planning
 
 ## Template
 
-```markdown
+````markdown
 ---
 name: [Area Name]
 description: [One-line purpose]
@@ -22,30 +24,30 @@ description: [One-line purpose]
 
 # [Area Name] Agent
 
-## Goal
+**Goal**
 [What "done" looks like for the current increment]
 
-## Contracts
+**Contracts**
 - `contracts/[relevant].yaml` — [which surfaces]
 
-## Process
+**Process**
 1. Read the contract surface relevant to the issue
 2. [Area-specific implementation step]
 3. Write tests using fixtures from the contract YAML
 4. Run validation commands
 5. Only open the PR if all checks pass
 
-## Validation
+**Validation**
 ```
 [exact commands to run]
 ```
 
-## Present
+**Present**
 [What artifact proves this works — test output, curl response, screenshot]
 
-## Constraints
+**Constraints**
 - [Hard rules for this area]
-```
+````
 
 ## Work Area 1: Schema & Data Store
 
@@ -59,17 +61,17 @@ description: Implements and tests the SchemaStore data layer
 
 # Schema Builder Agent
 
-## Goal
+**Goal**
 A working SchemaStore class backed by SQLite that implements all four
 surfaces from schema_to_backend.yaml: get_entity, query_region,
 upsert_entity, get_history.
 
-## Contracts
+**Contracts**
 - `contracts/schema_to_backend.yaml` — Entity, EntityList, UpsertResult, EntityHistory
 - `contracts/domains_to_schema.yaml` — TerrainPatch, StructureEntity, VegetationEntity, BuildRecord
 - `contracts/ingestion_to_schema.yaml` — Measurement, ImageRecord, EntityBatch, ValidationResult
 
-## Process
+**Process**
 1. Read all three contract files before writing any code
 2. Implement SchemaStore in `schema/store.py`
 3. Define Entity dataclass/TypedDict in `schema/models.py`
@@ -77,24 +79,27 @@ upsert_entity, get_history.
 5. Run: `HOMEMODEL_MODE=stub pytest schema/ --tb=short -v`
 6. Only open the PR if all tests pass
 
-## Validation
+**Validation**
 ```bash
 cd /path/to/homemodel
 HOMEMODEL_MODE=stub pytest schema/ --tb=short -v
 ```
 
-## Present
+**Present**
+
 - pytest output showing all tests green
 - A short summary of which contract surfaces are now implemented
 
-## Constraints
+**Constraints**
+
 - Python 3.11+, SQLite via built-in sqlite3 module
 - Every entity: id (UUID), type, geometry, position_gps, provenance, version
 - Version increments on update — never overwrite without bumping
 - Provenance is required on every write
 - geometry stored as JSON text in SQLite
 - position_gps stored as three columns: lat REAL, lon REAL, alt_m REAL
-```
+
+```txt
 
 ## Work Area 7: Backend API
 
@@ -108,15 +113,15 @@ description: FastAPI server bridging SchemaStore to the 3D viewer
 
 # Backend Builder Agent
 
-## Goal
+**Goal**
 A FastAPI server that exposes the backend_to_viewer contract surfaces
 as REST endpoints, reading from SchemaStore.
 
-## Contracts
+**Contracts**
 - `contracts/backend_to_viewer.yaml` — SceneManifest, SceneTile, EntityMesh, ViewpointList
 - `contracts/schema_to_backend.yaml` — Entity, EntityList (what SchemaStore returns)
 
-## Process
+**Process**
 1. Read both contract files
 2. Implement FastAPI app in `backend/main.py`
 3. In stub mode, return fixture data from contracts
@@ -124,7 +129,7 @@ as REST endpoints, reading from SchemaStore.
 5. Run: `HOMEMODEL_MODE=stub pytest backend/ --tb=short -v`
 6. Also: `HOMEMODEL_MODE=stub uvicorn backend.main:app &; curl localhost:8000/scene/manifest`
 
-## Validation
+**Validation**
 ```bash
 HOMEMODEL_MODE=stub pytest backend/ --tb=short -v
 HOMEMODEL_MODE=stub uvicorn backend.main:app --port 8000 &
@@ -132,16 +137,17 @@ curl -s localhost:8000/scene/manifest | python -m json.tool
 kill %1
 ```
 
-## Present
+**Present**
+
 - pytest output
 - curl output showing valid SceneManifest JSON matching contract
 
-## Constraints
+**Constraints**
+
 - FastAPI + uvicorn
 - CORS enabled for LAN access
 - All responses match contract field names exactly
 - No direct SQLite access — always go through SchemaStore
-```
 
 ## Remaining Skill Files to Create
 

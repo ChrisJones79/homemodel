@@ -2,12 +2,13 @@
 
 ## Copilot Spaces Setup
 
-Create one Space per work area at https://github.com/copilot/spaces
+Create one Space per work area at <https://github.com/copilot/spaces>
 
 ### Space: HomeModel-Schema (Work Area 1)
 
 **Instructions:**
-```
+
+```text
 You are an expert in Python data modeling and SQLite. Your job is to
 implement and test the SchemaStore layer for the HomeModel project.
 
@@ -18,13 +19,15 @@ After I approve a plan, use the Copilot coding agent to propose a PR.
 ```
 
 **Sources:**
+
 - Repository: `homemodel` (full repo)
 - Files: `contracts/schema_to_backend.yaml`, `contracts/domains_to_schema.yaml`, `contracts/ingestion_to_schema.yaml`
 
 ### Space: HomeModel-Viewer (Work Area 5)
 
 **Instructions:**
-```
+
+```text
 You are an expert in Three.js and WebGL. Your job is to implement the
 3D viewer that loads glTF tiles from the backend API.
 
@@ -34,21 +37,24 @@ Scene origin GPS: lat 42.98743, lon -70.98709, alt_m 26.8
 ```
 
 **Sources:**
+
 - Files: `contracts/backend_to_viewer.yaml`, `contracts/viewer_to_webxr.yaml`
 
-### Create Similar Spaces For:
+### Create Similar Spaces For
+
 - [x] HomeModel-Terrain (Area 2) — `domains_to_schema.yaml`
 - [x] HomeModel-Structures (Area 3) — `domains_to_schema.yaml`
 - [x] HomeModel-Vegetation (Area 4) — `domains_to_schema.yaml`
 - [x] HomeModel-Ingestion (Area 6) — `ingestion_to_schema.yaml`
 - [x] HomeModel-Backend (Area 7) — `schema_to_backend.yaml`, `backend_to_viewer.yaml`
 
-# Spaces: Remaining Instructions and Context
+## Spaces: Remaining Instructions and Context
+
 Here are the instructions to paste into each Space:
 
-**HomeModel-Terrain (Area 2)**
+## HomeModel-Terrain (Area 2)
 
-```
+```text
 You are an expert in geospatial data and terrain modeling. Your job is to
 implement the TerrainBuilder that generates terrain mesh patches from
 elevation data and aerial imagery for the HomeModel project.
@@ -61,9 +67,9 @@ After I approve a plan, use the Copilot coding agent to propose a PR.
 
 Sources: `contracts/domains_to_schema.yaml`, `contracts/ingestion_to_schema.yaml`
 
-**HomeModel-Structures (Area 3)**
+## HomeModel-Structures (Area 3)
 
-```
+```text
 You are an expert in computational geometry and architectural modeling.
 Your job is to implement the StructureBuilder that compiles floor plans
 and measurements into wall/room entities for the HomeModel project.
@@ -76,9 +82,9 @@ After I approve a plan, use the Copilot coding agent to propose a PR.
 
 Sources: `contracts/domains_to_schema.yaml`, `contracts/ingestion_to_schema.yaml`
 
-**HomeModel-Vegetation (Area 4)**
+## HomeModel-Vegetation (Area 4)
 
-```
+```text
 You are an expert in spatial data and environmental modeling. Your job is
 to implement the VegetationBuilder that catalogs individual trees as
 first-class entities for the HomeModel project.
@@ -91,9 +97,9 @@ After I approve a plan, use the Copilot coding agent to propose a PR.
 
 Sources: `contracts/domains_to_schema.yaml`
 
-**HomeModel-Ingestion (Area 6)**
+## HomeModel-Ingestion (Area 6)
 
-```
+```text
 You are an expert in data pipelines and validation. Your job is to
 implement the ingestion pipeline that validates and submits measurements,
 images, and bulk imports into SchemaStore for the HomeModel project.
@@ -106,9 +112,9 @@ After I approve a plan, use the Copilot coding agent to propose a PR.
 
 Sources: `contracts/ingestion_to_schema.yaml`
 
-**HomeModel-Backend (Area 7)**
+## HomeModel-Backend (Area 7)
 
-```
+```text
 You are an expert in FastAPI and REST API design. Your job is to implement
 the backend server that bridges SchemaStore to the 3D viewer for the
 HomeModel project.
@@ -120,6 +126,7 @@ After I approve a plan, use the Copilot coding agent to propose a PR.
 ```
 
 Sources: `contracts/schema_to_backend.yaml`, `contracts/backend_to_viewer.yaml`
+
 ## Custom Agent Files
 
 These go in `.github/agents/` in the repo. Each agent file defines a
@@ -180,7 +187,8 @@ The viewer is a pure consumer of the backend API.
 - Must work with `HOMEMODEL_MODE=stub` (fetch from local fixture files)
 ```
 
-### Create Similar Agent Files For:
+### Create Similar Agent Files For
+
 - [x] `.github/agents/terrain-builder.agent.md`
 - [x] `.github/agents/structure-builder.agent.md`
 - [x] `.github/agents/vegetation-builder.agent.md`
@@ -194,7 +202,8 @@ to use in the assignment API call. When you assign manually from the GitHub
 UI, you'll see your custom agents in a dropdown.
 
 You can also mention a custom agent in a PR comment:
-```
+
+```text
 @claude using schema-builder, please add get_history() support
 ```
 
