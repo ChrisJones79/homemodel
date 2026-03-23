@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { loadTiles } from './tiles.js';
 import { buildNavMenu } from './nav.js';
+import { initInspect } from './inspect.js';
 
 // ---------------------------------------------------------------------------
 // Stub-mode detection
@@ -162,7 +163,10 @@ async function init() {
   // 4. Build nav menu -------------------------------------------------------
   await buildNavMenu(scene, camera);
 
-  // 5. Animation loop -------------------------------------------------------
+  // 5. Initialise entity inspector -------------------------------------------
+  initInspect();
+
+  // 6. Animation loop -------------------------------------------------------
   renderer.setAnimationLoop(() => {
     renderer.render(scene, camera);
   });
