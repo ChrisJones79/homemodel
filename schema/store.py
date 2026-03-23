@@ -56,6 +56,22 @@ CREATE TABLE IF NOT EXISTS build_records (
 );
 """
 
+_CREATE_IMAGES = """
+CREATE TABLE IF NOT EXISTS images (
+    id               TEXT PRIMARY KEY,
+    entity_id        TEXT,
+    file_path        TEXT NOT NULL,
+    format           TEXT NOT NULL,
+    size_bytes       INTEGER NOT NULL,
+    capture_gps      TEXT NOT NULL,     -- JSON text
+    capture_heading  TEXT,               -- JSON text, nullable
+    capture_timestamp TEXT NOT NULL,
+    source_type      TEXT NOT NULL,
+    linked_entity_ids TEXT NOT NULL DEFAULT '[]',  -- JSON array
+    FOREIGN KEY (entity_id) REFERENCES entities(id)
+);
+"""
+
 
 class SchemaStore:
     """SQLite-backed entity store.
@@ -83,6 +99,7 @@ class SchemaStore:
             self._conn.execute(_CREATE_ENTITIES)
             self._conn.execute(_CREATE_HISTORY)
             self._conn.execute(_CREATE_BUILD_RECORDS)
+            self._conn.execute(_CREATE_IMAGES)
 
     @staticmethod
     def _row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
@@ -423,6 +440,176 @@ class SchemaStore:
             }
             for r in rows
         ]
+
+    # ------------------------------------------------------------------
+    # Surface 6 — attach_image
+    # ------------------------------------------------------------------
+
+    def attach_image(self, entity_id: str | None, image_record: dict) -> str:
+        """Attach an image record to an entity (or standalone).
+
+        Parameters
+        ----------
+        entity_id:
+            UUID of the entity to link the image to, or None for standalone images
+        image_record:
+            ImageRecord dict matching the ingestion_to_schema contract
+
+        Returns
+        -------
+        str
+            The image_id (generated UUID)
+
+        Raises
+        ------
+        ValueError
+            If the image_record is missing required fields
+        KeyError
+            If entity_id is provided but doesn't exist
+        """
+        import uuid
+
+        # Validate required fields
+        required = ("file_path", "format", "size_bytes", "capture_gps",
+                    "capture_timestamp", "source_type")
+        missing = [f for f in required if f not in image_record]
+        if missing:
+            raise ValueError(f"ImageRecord is missing required fields: {missing}")
+
+        # Validate entity exists if provided
+        if entity_id is not None:
+            exists = self._conn.execute(
+                "SELECT 1 FROM entities WHERE id = ?", (entity_id,)
+            ).fetchone()
+            if exists is None:
+                raise KeyError(f"Entity not found: {entity_id!r}")
+
+        # Generate image ID
+        image_id = str(uuid.uuid4())
+
+        # Serialize JSON fields
+        capture_gps_str = json.dumps(image_record["capture_gps"])
+        capture_heading = image_record.get("capture_heading")
+        capture_heading_str = json.dumps(capture_heading) if capture_heading else None
+        linked_entity_ids_str = json.dumps(image_record.get("linked_entity_ids", []))
+
+        # Insert image record
+        with self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO images
+                    (id, entity_id, file_path, format, size_bytes,
+                     capture_gps, capture_heading, capture_timestamp,
+                     source_type, linked_entity_ids)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    image_id,
+                    entity_id,
+                    image_record["file_path"],
+                    image_record["format"],
+                    image_record["size_bytes"],
+                    capture_gps_str,
+                    capture_heading_str,
+                    image_record["capture_timestamp"],
+                    image_record["source_type"],
+                    linked_entity_ids_str,
+                ),
+            )
+
+        return image_id
+
+    # ------------------------------------------------------------------
+    # Surface 7 — bulk_upsert
+    # ------------------------------------------------------------------
+
+    def bulk_upsert(self, batch: dict) -> dict[str, Any]:
+        """Bulk upsert entities with configurable conflict strategy.
+
+        Parameters
+        ----------
+        batch:
+            EntityBatch dict with:
+            - source: str
+            - entities: list of Entity dicts
+            - conflict_strategy: "skip" | "overwrite" | "version_bump"
+
+        Returns
+        -------
+        dict
+            {
+                "source": str,
+                "total": int,
+                "created": int,
+                "updated": int,
+                "skipped": int,
+                "errors": [{"id": str, "message": str}, ...]
+            }
+
+        Raises
+        ------
+        ValueError
+            If batch is missing required fields or has invalid conflict_strategy
+        """
+        # Validate batch structure
+        required = ("source", "entities", "conflict_strategy")
+        missing = [f for f in required if f not in batch]
+        if missing:
+            raise ValueError(f"EntityBatch is missing required fields: {missing}")
+
+        conflict_strategy = batch["conflict_strategy"]
+        valid_strategies = ("skip", "overwrite", "version_bump")
+        if conflict_strategy not in valid_strategies:
+            raise ValueError(
+                f"Invalid conflict_strategy: {conflict_strategy!r}. "
+                f"Must be one of: {valid_strategies}"
+            )
+
+        entities = batch["entities"]
+        results = {
+            "source": batch["source"],
+            "total": len(entities),
+            "created": 0,
+            "updated": 0,
+            "skipped": 0,
+            "errors": []
+        }
+
+        for entity in entities:
+            try:
+                self._validate_entity(entity)
+                entity_id = entity["id"]
+
+                # Check if entity exists
+                existing = self._conn.execute(
+                    "SELECT version FROM entities WHERE id = ?", (entity_id,)
+                ).fetchone()
+
+                if existing is None:
+                    # Entity doesn't exist - always create
+                    self.upsert_entity(entity)
+                    results["created"] += 1
+                else:
+                    # Entity exists - apply conflict strategy
+                    if conflict_strategy == "skip":
+                        # Skip existing entities
+                        results["skipped"] += 1
+                    elif conflict_strategy == "overwrite":
+                        # Overwrite existing entity (increments version)
+                        self.upsert_entity(entity)
+                        results["updated"] += 1
+                    elif conflict_strategy == "version_bump":
+                        # Increment version and keep history
+                        self.upsert_entity(entity)
+                        results["updated"] += 1
+
+            except Exception as e:
+                results["errors"].append({
+                    "id": entity.get("id", "unknown"),
+                    "message": str(e)
+                })
+
+        return results
 
     # ------------------------------------------------------------------
     # Convenience

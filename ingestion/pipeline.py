@@ -87,7 +87,7 @@ class Ingestion:
         Returns
         -------
         dict
-            Result from SchemaStore with attachment confirmation
+            Result from SchemaStore with image_id and status
 
         Raises
         ------
@@ -104,21 +104,23 @@ class Ingestion:
         if self._stub_mode:
             # In stub mode, return a mock result
             return {
-                "file_path": image["file_path"],
+                "image_id": "00000000-0000-0000-0000-000000000000",
                 "status": "attached",
-                "linked_entities": image.get("linked_entity_ids", [])
+                "file_path": image["file_path"]
             }
         else:
-            # In real mode, call attach_image (if it exists on the store)
-            if hasattr(self._store, "attach_image"):
-                return self._store.attach_image(image)
-            else:
-                # Fallback for stores that don't implement attach_image yet
-                return {
-                    "file_path": image["file_path"],
-                    "status": "attached",
-                    "linked_entities": image.get("linked_entity_ids", [])
-                }
+            # Determine entity_id - use first linked entity or None
+            entity_id = None
+            if image.get("linked_entity_ids") and len(image["linked_entity_ids"]) > 0:
+                entity_id = image["linked_entity_ids"][0]
+
+            # Call attach_image
+            image_id = self._store.attach_image(entity_id, image)
+            return {
+                "image_id": image_id,
+                "status": "attached",
+                "file_path": image["file_path"]
+            }
 
     def submit_bulk(self, batch: dict) -> dict[str, Any]:
         """Submit a batch of entities to the SchemaStore.
@@ -157,30 +159,11 @@ class Ingestion:
                 "created": entity_count,
                 "updated": 0,
                 "skipped": 0,
-                "conflict_strategy": batch["conflict_strategy"]
+                "errors": []
             }
         else:
-            # In real mode, call bulk_upsert (if it exists on the store)
-            if hasattr(self._store, "bulk_upsert"):
-                return self._store.bulk_upsert(batch)
-            else:
-                # Fallback: upsert each entity individually
-                results = {"created": 0, "updated": 0, "skipped": 0}
-                for entity in batch["entities"]:
-                    try:
-                        result = self._store.upsert_entity(entity)
-                        if result["status"] == "created":
-                            results["created"] += 1
-                        elif result["status"] == "updated":
-                            results["updated"] += 1
-                    except Exception:
-                        results["skipped"] += 1
-                return {
-                    "source": batch["source"],
-                    "total": len(batch["entities"]),
-                    "conflict_strategy": batch["conflict_strategy"],
-                    **results
-                }
+            # Call bulk_upsert
+            return self._store.bulk_upsert(batch)
 
     def validate(self, payload: Any, payload_type: str = "measurement") -> dict[str, Any]:
         """Validate a payload without submitting it.
