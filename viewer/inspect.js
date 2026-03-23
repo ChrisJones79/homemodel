@@ -184,8 +184,10 @@ function _onKeyDown(event) {
  * before the animation loop starts, once the scene is fully populated).
  */
 export function initInspect() {
-  // Add stub mesh so there is always something pickable in stub mode.
-  _addStubEntityMesh();
+  // Add stub mesh only in stub mode so there is always something pickable.
+  if (isStubMode) {
+    _addStubEntityMesh();
+  }
 
   // Canvas pointer handler — listen on window so we can compare event.target.
   window.addEventListener('pointerdown', _onPointerDown);
