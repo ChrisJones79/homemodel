@@ -178,8 +178,8 @@ tasks:
 
     Follow the EntityHistory contract in contracts/schema_to_backend.yaml.
 
-    Store a snapshot of provenance and a diff_summary (changed fields) each time
-    upsert_entity is called on an existing entity (version > 1).
+    Store a snapshot of provenance and a diff_summary (changed fields) each time upsert_entity
+    is called on an existing entity (version > 1).
 
     Return revisions ordered newest-first.
 
@@ -187,8 +187,8 @@ tasks:
 
     '
   id: schema-003
-  issue_number: null
-  status: pending
+  issue_number: 27
+  status: dispatched
   title: Implement SchemaStore.get_history with entity revision tracking
 - acceptance:
   - pytest backend/ --tb=short -v passes
@@ -202,21 +202,14 @@ tasks:
   depends_on:
   - schema-002
   - schema-003
-  description: 'Add entity REST endpoints to backend/main.py.
-
-    Follow the Entity, EntityList, and UpsertResult contracts in
-    contracts/schema_to_backend.yaml.
-
-    Implement:
-      GET /entities?bbox=sw_lat,sw_lon,ne_lat,ne_lon  → EntityList (calls query_region)
-      GET /entities/{id}                              → Entity (calls get_entity)
-      POST /entities                                  → UpsertResult (calls upsert_entity)
-
-    In stub mode return fixture data from the contract test_fixtures.
-    In real mode delegate to SchemaStore on app.state.store.
-    Add tests in backend/tests/test_manifest.py or a new test_entities.py.
-
-    '
+  description: "Add entity REST endpoints to backend/main.py.\nFollow the Entity,\
+    \ EntityList, and UpsertResult contracts in contracts/schema_to_backend.yaml.\n\
+    Implement: GET /entities?bbox=sw_lat,sw_lon,ne_lat,ne_lon  \u2192 EntityList (calls\
+    \ query_region) GET /entities/{id}                              \u2192 Entity\
+    \ (calls get_entity) POST /entities                                  \u2192 UpsertResult\
+    \ (calls upsert_entity)\nIn stub mode return fixture data from the contract test_fixtures.\
+    \ In real mode delegate to SchemaStore on app.state.store. Add tests in backend/tests/test_manifest.py\
+    \ or a new test_entities.py.\n"
   id: backend-002
   issue_number: null
   status: pending
@@ -230,29 +223,25 @@ tasks:
   area: 7
   custom_agent: backend-builder
   depends_on: backend-001
-  description: 'Add tile and mesh serving stubs to backend/main.py.
-
-    Follow the SceneTile and EntityMesh contracts in contracts/backend_to_viewer.yaml.
-
-    Implement:
-      GET /scene/tiles/{z}/{x}/{y}.glb  → returns a stub minimal GLB binary
-      GET /entities/{id}/mesh           → returns a stub minimal GLB binary
-
-    The stub GLB must be a valid glTF 2.0 binary with at least one triangle mesh
-    so the viewer can parse it without error. Hard-code a minimal GLB bytes constant.
-    In stub mode always return the stub GLB regardless of z/x/y or id.
-    In real mode return 501 Not Implemented (tile generation is a future task).
-    Add tests asserting Content-Type and non-empty response body.
-
-    '
+  description: "Add tile and mesh serving stubs to backend/main.py.\nFollow the SceneTile\
+    \ and EntityMesh contracts in contracts/backend_to_viewer.yaml.\nImplement: GET\
+    \ /scene/tiles/{z}/{x}/{y}.glb  \u2192 returns a stub minimal GLB binary GET /entities/{id}/mesh\
+    \           \u2192 returns a stub minimal GLB binary\nThe stub GLB must be a valid\
+    \ glTF 2.0 binary with at least one triangle mesh so the viewer can parse it without\
+    \ error. Hard-code a minimal GLB bytes constant. In stub mode always return the\
+    \ stub GLB regardless of z/x/y or id. In real mode return 501 Not Implemented\
+    \ (tile generation is a future task). Add tests asserting Content-Type and non-empty\
+    \ response body.\n"
   id: backend-003
-  issue_number: null
-  status: pending
+  issue_number: 28
+  status: dispatched
   title: Stub GET /scene/tiles and GET /entities/{id}/mesh GLB endpoints
 - acceptance:
   - pytest schema/tests/ passes
-  - SchemaStore.attach_image(entity_id, image_record) stores image metadata linked to the entity
-  - SchemaStore.bulk_upsert(batch) applies conflict_strategy (skip / overwrite / version_bump) correctly
+  - SchemaStore.attach_image(entity_id, image_record) stores image metadata linked
+    to the entity
+  - SchemaStore.bulk_upsert(batch) applies conflict_strategy (skip / overwrite / version_bump)
+    correctly
   - ingestion/pipeline.py routes submit_image to attach_image and submit_bulk to bulk_upsert
   agent: claude
   area: 6
@@ -260,31 +249,30 @@ tasks:
   depends_on:
   - ingestion-001
   - schema-001
-  description: 'Implement SchemaStore.attach_image and SchemaStore.bulk_upsert,
-    then wire them into the ingestion pipeline.
+  description: 'Implement SchemaStore.attach_image and SchemaStore.bulk_upsert, then
+    wire them into the ingestion pipeline.
 
     Follow the ImageRecord and EntityBatch contracts in contracts/ingestion_to_schema.yaml.
 
-    SchemaStore.attach_image(entity_id: str, image_record: dict) -> str:
-      Store image metadata in a new images table (or entity properties).
-      Return the image id.
+    SchemaStore.attach_image(entity_id: str, image_record: dict) -> str: Store image
+    metadata in a new images table (or entity properties). Return the image id.
 
     SchemaStore.bulk_upsert(batch: dict) -> dict {created, updated, skipped, errors}:
-      Apply conflict_strategy: skip (do not overwrite existing), overwrite (always
-      replace), or version_bump (increment version, keep history).
+    Apply conflict_strategy: skip (do not overwrite existing), overwrite (always replace),
+    or version_bump (increment version, keep history).
 
-    Update ingestion/pipeline.py so submit_image delegates to attach_image and
-    submit_bulk delegates to bulk_upsert.
-    Add tests for each conflict strategy.
+    Update ingestion/pipeline.py so submit_image delegates to attach_image and submit_bulk
+    delegates to bulk_upsert. Add tests for each conflict strategy.
 
     '
   id: ingestion-002
-  issue_number: null
-  status: pending
+  issue_number: 29
+  status: dispatched
   title: Implement SchemaStore.attach_image and bulk_upsert with conflict strategies
 - acceptance:
   - Viewer opens in browser with no console errors (stub mode)
-  - Clicking on a mesh in the scene opens an inspection panel showing entity id, type, and properties
+  - Clicking on a mesh in the scene opens an inspection panel showing entity id, type,
+    and properties
   - Panel has a close button
   - Keyboard shortcut Escape also closes the panel
   agent: copilot
@@ -293,23 +281,16 @@ tasks:
   depends_on:
   - viewer-001
   - backend-002
-  description: 'Add entity pick / inspect capability to the Three.js viewer.
-
-    Follow the Entity contract in contracts/schema_to_backend.yaml.
-
-    Add to viewer/scene.js or a new viewer/inspect.js:
-      - Raycaster on pointer click to find the nearest intersected mesh
-      - On hit, extract the entity id from mesh.userData.entityId
-      - Fetch GET /entities/{id} from the backend (or use stub fixture in stub mode)
-      - Render an overlay panel (plain HTML/CSS injected into index.html) showing:
-          Entity ID, type, and all properties key/value pairs
-      - Close the panel on button click or Escape key
-
-    The stub fixture for an inspected entity should be the entity_tree fixture from
-    contracts/schema_to_backend.yaml.
-    Do not add any new JS dependencies — use only Three.js already in vendor/.
-
-    '
+  description: "Add entity pick / inspect capability to the Three.js viewer.\nFollow\
+    \ the Entity contract in contracts/schema_to_backend.yaml.\nAdd to viewer/scene.js\
+    \ or a new viewer/inspect.js: - Raycaster on pointer click to find the nearest\
+    \ intersected mesh - On hit, extract the entity id from mesh.userData.entityId\
+    \ - Fetch GET /entities/{id} from the backend (or use stub fixture in stub mode)\
+    \ - Render an overlay panel (plain HTML/CSS injected into index.html) showing:\
+    \ Entity ID, type, and all properties key/value pairs - Close the panel on button\
+    \ click or Escape key\nThe stub fixture for an inspected entity should be the\
+    \ entity_tree fixture from contracts/schema_to_backend.yaml. Do not add any new\
+    \ JS dependencies \u2014 use only Three.js already in vendor/.\n"
   id: viewer-002
   issue_number: null
   status: pending

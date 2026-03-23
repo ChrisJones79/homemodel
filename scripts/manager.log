@@ -61,3 +61,22 @@
 [2026-03-22T20:07:45.845986]   DONE: vegetation-001 (issue #18 closed as completed)
 [2026-03-22T20:07:45.852215] Tasks updated.
 [2026-03-22T20:07:56.077233] No status changes detected.
+[2026-03-22T20:18:22.840009] No status changes detected.
+[2026-03-22T20:37:42.672894] No status changes detected.
+[2026-03-22T20:47:03.319667] Dispatching: schema-003 — Implement SchemaStore.get_history with entity revision tracking
+[2026-03-22T20:47:05.930525]   ✓ Agent assigned via GraphQL
+[2026-03-22T20:47:05.930617]   → Issue #27 assigned to @claude
+[2026-03-22T20:47:05.930667] Dispatching: backend-003 — Stub GET /scene/tiles and GET /entities/{id}/mesh GLB endpoints
+[2026-03-22T20:47:08.449913]   ✓ Agent assigned via GraphQL
+[2026-03-22T20:47:08.450122]   → Issue #28 assigned to @copilot
+[2026-03-22T20:47:08.453015] Dispatching: ingestion-002 — Implement SchemaStore.attach_image and bulk_upsert with conflict strategies
+[2026-03-22T20:47:11.053526]   ✓ Agent assigned via GraphQL
+[2026-03-22T20:47:11.053654]   → Issue #29 assigned to @claude
+[2026-03-22T20:47:15.421701]   OPEN: schema-003 issue #27 still open
+[2026-03-22T20:47:15.674065]   OPEN: backend-003 issue #28 still open
+[2026-03-22T20:47:15.928173]   OPEN: ingestion-002 issue #29 still open
+[2026-03-22T20:47:15.928262] No status changes detected.
+[2026-03-23T06:31:27.251045]   OPEN: schema-003 issue #27 still open
+[2026-03-23T06:31:27.505890]   OPEN: backend-003 issue #28 still open
+[2026-03-23T06:31:27.971731]   OPEN: ingestion-002 issue #29 still open
+[2026-03-23T06:31:27.971821] No status changes detected.

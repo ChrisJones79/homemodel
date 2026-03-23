@@ -50,7 +50,12 @@ def get_ready_tasks(tasks):
         if t["status"] != "pending":
             continue
         deps = t.get("depends_on")
-        if deps is None or deps in done_ids:
+        if deps is None:
+            ready.append(t)
+        elif isinstance(deps, list):
+            if all(d in done_ids for d in deps):
+                ready.append(t)
+        elif deps in done_ids:
             ready.append(t)
     return ready
 
