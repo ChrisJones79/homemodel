@@ -20,7 +20,7 @@ import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -122,6 +122,40 @@ _REAL_LOD_LEVELS = [
     LodLevel(level=0, max_distance_m=50.0, mesh_url="/scene/tiles/0/0/0.glb"),
     LodLevel(level=1, max_distance_m=200.0, mesh_url="/scene/tiles/1/0/0.glb"),
 ]
+
+# ---------------------------------------------------------------------------
+# Stub GLB — minimal valid glTF 2.0 binary containing one triangle mesh.
+# Header: magic "glTF" + version 2 + total length (540 bytes).
+# JSON chunk: full glTF scene graph (asset, scene, nodes, meshes, accessors,
+#             bufferViews, buffers) padded to 4-byte alignment with spaces.
+# BIN chunk:  3×VEC3 float32 positions (36 bytes) +
+#             3×SCALAR uint16 indices  (6 bytes, padded to 8 bytes).
+# ---------------------------------------------------------------------------
+
+_STUB_GLB: bytes = (
+    b'glTF\x02\x00\x00\x00\x1c\x02\x00\x00'          # GLB header (12 bytes)
+    b'\xd4\x01\x00\x00JSON'                             # JSON chunk header
+    b'{"asset":{"version":"2.0"},"scene":0,'
+    b'"scenes":[{"nodes":[0]}],'
+    b'"nodes":[{"mesh":0}],'
+    b'"meshes":[{"primitives":[{"attributes":{"POSITION":0},"indices":1}]}],'
+    b'"accessors":['
+    b'{"bufferView":0,"componentType":5126,"count":3,"type":"VEC3",'
+    b'"min":[0.0,0.0,0.0],"max":[1.0,1.0,0.0]},'
+    b'{"bufferView":1,"componentType":5123,"count":3,"type":"SCALAR"}],'
+    b'"bufferViews":['
+    b'{"buffer":0,"byteOffset":0,"byteLength":36},'
+    b'{"buffer":0,"byteOffset":36,"byteLength":6}],'
+    b'"buffers":[{"byteLength":44}]}'
+    b' '                                                # 1-byte space padding → 4-byte align
+    b'\x2c\x00\x00\x00BIN\x00'                         # BIN chunk header (length=44)
+    # 3 VEC3 float32 vertices: (0,0,0), (1,0,0), (0,1,0)
+    b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'  # (0,0,0)
+    b'\x00\x00\x80\x3f\x00\x00\x00\x00\x00\x00\x00\x00'  # (1,0,0)
+    b'\x00\x00\x00\x00\x00\x00\x80\x3f\x00\x00\x00\x00'  # (0,1,0)
+    # 3 uint16 indices: 0,1,2  +  2 zero-bytes padding
+    b'\x00\x00\x01\x00\x02\x00\x00\x00'
+)
 
 # ---------------------------------------------------------------------------
 # Application factory
@@ -249,6 +283,42 @@ def create_app(mode: str | None = None) -> FastAPI:
         A future iteration will persist viewpoints in SchemaStore.
         """
         return _FIXTURE_VIEWPOINTS
+
+    # ------------------------------------------------------------------
+    # Endpoint: GET /scene/tiles/{z}/{x}/{y}.glb
+    # ------------------------------------------------------------------
+
+    @application.get(
+        "/scene/tiles/{z}/{x}/{y}.glb",
+        summary="SceneTile — terrain mesh tile as glTF binary",
+    )
+    def get_scene_tile(z: int, x: int, y: int) -> Response:
+        """Return a GLB tile for the given tile coordinates.
+
+        In **stub** mode returns a minimal single-triangle GLB regardless of z/x/y.
+        In **real** mode returns 501 Not Implemented (tile generation is a future task).
+        """
+        if resolved_mode == "stub":
+            return Response(content=_STUB_GLB, media_type="application/octet-stream")
+        raise HTTPException(status_code=501, detail="Tile generation not yet implemented")
+
+    # ------------------------------------------------------------------
+    # Endpoint: GET /entities/{entity_id}/mesh
+    # ------------------------------------------------------------------
+
+    @application.get(
+        "/entities/{entity_id}/mesh",
+        summary="EntityMesh — entity detail mesh as glTF binary",
+    )
+    def get_entity_mesh(entity_id: str) -> Response:
+        """Return a GLB mesh for the given entity id.
+
+        In **stub** mode returns a minimal single-triangle GLB regardless of id.
+        In **real** mode returns 501 Not Implemented (entity mesh generation is a future task).
+        """
+        if resolved_mode == "stub":
+            return Response(content=_STUB_GLB, media_type="application/octet-stream")
+        raise HTTPException(status_code=501, detail="Entity mesh generation not yet implemented")
 
     return application
 
