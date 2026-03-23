@@ -340,7 +340,7 @@ class SchemaStore:
             SELECT version, timestamp, provenance, diff_summary
             FROM   entity_history
             WHERE  entity_id = ?
-            ORDER  BY version ASC
+            ORDER  BY version DESC
             """,
             (id,),
         ).fetchall()

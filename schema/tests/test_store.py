@@ -225,7 +225,15 @@ class TestGetHistory:
         store.upsert_entity(entity_tree)
         history = store.get_history(entity_tree["id"])
         versions = [r["version"] for r in history["revisions"]]
-        assert versions == sorted(versions)
+        assert versions == sorted(versions, reverse=True)
+
+    def test_history_revisions_ordered_newest_first(self, store, entity_tree):
+        store.upsert_entity(entity_tree)
+        store.upsert_entity(entity_tree)
+        store.upsert_entity(entity_tree)
+        history = store.get_history(entity_tree["id"])
+        versions = [r["version"] for r in history["revisions"]]
+        assert versions == [3, 2, 1]
 
     def test_history_revision_shape(self, store, entity_tree):
         store.upsert_entity(entity_tree)
