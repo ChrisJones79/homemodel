@@ -55,7 +55,6 @@ tasks:
   issue_number: 12
   status: done
   title: FastAPI skeleton with GET /scene/manifest
-
 - acceptance:
   - pytest terrain/ --tb=short -v passes
   - Generates a TerrainPatch entity matching the terrain_patch fixture format
@@ -64,27 +63,17 @@ tasks:
   area: 2
   custom_agent: terrain-builder
   depends_on: schema-001
-  description: 'Implement TerrainBuilder in terrain/builder.py and elevation grid
-    parsing in terrain/elevation.py.
-
-
-    Follow the TerrainPatch and BuildRecord surfaces in contracts/domains_to_schema.yaml.
-
-    Use the terrain_patch test fixture as the canonical output shape.
-
-    In stub mode use fixture elevation values — no network calls.
-
-    Scene origin: lat 42.98743, lon -70.98709, alt_m 26.8.
-
-    Output triangulated mesh as vertices + faces.
-
-    Log a BuildRecord after every generation run.
-
-    '
+  description: "Implement TerrainBuilder in terrain/builder.py and elevation grid\
+    \ parsing in terrain/elevation.py.\n\nFollow the TerrainPatch and BuildRecord\
+    \ surfaces in contracts/domains_to_schema.yaml.\nUse the terrain_patch test fixture\
+    \ as the canonical output shape.\nIn stub mode use fixture elevation values \u2014\
+    \ no network calls.\nScene origin: lat 42.98743, lon -70.98709, alt_m 26.8.\n\
+    Output triangulated mesh as vertices + faces.\nLog a BuildRecord after every generation\
+    \ run.\n"
   id: terrain-001
-  status: pending
+  issue_number: 16
+  status: done
   title: Implement TerrainBuilder and elevation grid parsing
-
 - acceptance:
   - pytest structures/ --tb=short -v passes
   - Generates a StructureEntity with walls and openings matching the contract
@@ -111,9 +100,9 @@ tasks:
 
     '
   id: structure-001
-  status: pending
+  issue_number: 17
+  status: done
   title: Implement StructureBuilder with wall/room extrusion
-
 - acceptance:
   - pytest vegetation/ --tb=short -v passes
   - Generates a VegetationEntity matching the tree_white_pine fixture format
@@ -122,29 +111,18 @@ tasks:
   area: 4
   custom_agent: vegetation-builder
   depends_on: schema-001
-  description: 'Implement VegetationBuilder in vegetation/builder.py and canopy shape
-    definitions in vegetation/canopy.py.
-
-
-    Follow the VegetationEntity and BuildRecord surfaces in contracts/domains_to_schema.yaml.
-
-    Use the tree_white_pine test fixture as the canonical output shape.
-
-    Individual trees are first-class entities — not grouped or simplified.
-
-    Required fields: position_gps, height_m, canopy_radius_m, canopy_shape.
-
-    canopy_shape enum: round, conical, spreading, columnar, irregular.
-
-    health enum: healthy, stressed, dead, unknown.
-
-    Log a BuildRecord after every catalog run.
-
-    '
+  description: "Implement VegetationBuilder in vegetation/builder.py and canopy shape\
+    \ definitions in vegetation/canopy.py.\n\nFollow the VegetationEntity and BuildRecord\
+    \ surfaces in contracts/domains_to_schema.yaml.\nUse the tree_white_pine test\
+    \ fixture as the canonical output shape.\nIndividual trees are first-class entities\
+    \ \u2014 not grouped or simplified.\nRequired fields: position_gps, height_m,\
+    \ canopy_radius_m, canopy_shape.\ncanopy_shape enum: round, conical, spreading,\
+    \ columnar, irregular.\nhealth enum: healthy, stressed, dead, unknown.\nLog a\
+    \ BuildRecord after every catalog run.\n"
   id: vegetation-001
-  status: pending
+  issue_number: 18
+  status: done
   title: Implement VegetationBuilder and canopy shapes
-
 - acceptance:
   - pytest ingestion/ --tb=short -v passes
   - Validation catches bad input (missing required fields, invalid enum values)
@@ -153,30 +131,18 @@ tasks:
   area: 6
   custom_agent: ingestion-builder
   depends_on: schema-001
-  description: 'Implement the Ingestion pipeline in ingestion/pipeline.py and validation
-    logic in ingestion/validate.py.
-
-
-    Follow the Measurement, ImageRecord, EntityBatch, and ValidationResult surfaces
-    in contracts/ingestion_to_schema.yaml.
-
-    Validation must run before every submit — no unvalidated data enters SchemaStore.
-
-    Measurement types: laser_p2p, gps_point, image_derived, drone_telemetry.
-
-    Image source types: phone, drone_aerial, drone_ground, dslr, scan.
-
-    Bulk import requires a conflict_strategy: skip, overwrite, or version_bump.
-
-    Provenance is mandatory on all measurements.
-
-    Use the laser_measurement and drone_image test fixtures.
-
-    '
+  description: "Implement the Ingestion pipeline in ingestion/pipeline.py and validation\
+    \ logic in ingestion/validate.py.\n\nFollow the Measurement, ImageRecord, EntityBatch,\
+    \ and ValidationResult surfaces in contracts/ingestion_to_schema.yaml.\nValidation\
+    \ must run before every submit \u2014 no unvalidated data enters SchemaStore.\n\
+    Measurement types: laser_p2p, gps_point, image_derived, drone_telemetry.\nImage\
+    \ source types: phone, drone_aerial, drone_ground, dslr, scan.\nBulk import requires\
+    \ a conflict_strategy: skip, overwrite, or version_bump.\nProvenance is mandatory\
+    \ on all measurements.\nUse the laser_measurement and drone_image test fixtures.\n"
   id: ingestion-001
-  status: pending
+  issue_number: 21
+  status: done
   title: Implement Ingestion pipeline with measurement and image submission
-
 - acceptance:
   - Scene loads in browser with no console errors
   - Terrain visible using stub fixture data
@@ -186,30 +152,17 @@ tasks:
   area: 5
   custom_agent: viewer-builder
   depends_on: backend-001
-  description: 'Implement the Three.js 3D viewer with scene loading, tile management,
-    and navigation.
-
-
-    Follow the SceneManifest, SceneTile, EntityMesh, and ViewpointList surfaces in
-    contracts/backend_to_viewer.yaml.
-
-    Follow the XRSessionConfig and XRSceneHandoff surfaces in contracts/viewer_to_webxr.yaml.
-
-    Implement scene loader in viewer/scene.js.
-
-    Implement tile manager in viewer/tiles.js.
-
-    Implement navigation menu from ViewpointList in viewer/nav.js.
-
-    In stub mode fetch from local fixture files — no live backend required.
-
-    Y-up coordinate system, meters, scene origin GPS: lat 42.98743, lon -70.98709, alt_m 26.8.
-
-    Three.js for all rendering; glTF/GLB for all mesh data.
-
-    WebXR session must share the Three.js Scene — no duplication.
-
-    '
+  description: "Implement the Three.js 3D viewer with scene loading, tile management,\
+    \ and navigation.\n\nFollow the SceneManifest, SceneTile, EntityMesh, and ViewpointList\
+    \ surfaces in contracts/backend_to_viewer.yaml.\nFollow the XRSessionConfig and\
+    \ XRSceneHandoff surfaces in contracts/viewer_to_webxr.yaml.\nImplement scene\
+    \ loader in viewer/scene.js.\nImplement tile manager in viewer/tiles.js.\nImplement\
+    \ navigation menu from ViewpointList in viewer/nav.js.\nIn stub mode fetch from\
+    \ local fixture files \u2014 no live backend required.\nY-up coordinate system,\
+    \ meters, scene origin GPS: lat 42.98743, lon -70.98709, alt_m 26.8.\nThree.js\
+    \ for all rendering; glTF/GLB for all mesh data.\nWebXR session must share the\
+    \ Three.js Scene \u2014 no duplication.\n"
   id: viewer-001
-  status: pending
+  issue_number: 23
+  status: done
   title: Implement Three.js scene loader, tile manager, and nav menu

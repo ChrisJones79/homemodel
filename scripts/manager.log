@@ -29,3 +29,35 @@
 [2026-03-22T14:46:48.678199]   DONE: backend-001 (issue #12 closed as completed)
 [2026-03-22T14:46:48.679681] Tasks updated.
 [2026-03-22T14:47:08.876763] No status changes detected.
+[2026-03-22T16:06:38.017609] Dispatching: terrain-001 — Implement TerrainBuilder and elevation grid parsing
+[2026-03-22T16:06:40.840941]   ✓ Agent assigned via GraphQL
+[2026-03-22T16:06:40.841045]   → Issue #16 assigned to @copilot
+[2026-03-22T16:06:40.841097] Dispatching: structure-001 — Implement StructureBuilder with wall/room extrusion
+[2026-03-22T16:06:43.878295]   ✓ Agent assigned via GraphQL
+[2026-03-22T16:06:43.878390]   → Issue #17 assigned to @claude
+[2026-03-22T16:06:43.878429] Dispatching: vegetation-001 — Implement VegetationBuilder and canopy shapes
+[2026-03-22T16:06:46.443844]   ✓ Agent assigned via GraphQL
+[2026-03-22T16:06:46.443961]   → Issue #18 assigned to @copilot
+[2026-03-22T16:06:46.444003] Dispatching: ingestion-001 — Implement Ingestion pipeline with measurement and image submission
+[2026-03-22T16:06:51.771493]   ✓ Agent assigned via GraphQL
+[2026-03-22T16:06:51.771598]   → Issue #21 assigned to @claude
+[2026-03-22T16:06:51.771641] Dispatching: viewer-001 — Implement Three.js scene loader, tile manager, and nav menu
+[2026-03-22T16:06:54.191937]   ✓ Agent assigned via GraphQL
+[2026-03-22T16:06:54.192030]   → Issue #23 assigned to @copilot
+[2026-03-22T16:07:03.021096]   OPEN: terrain-001 issue #16 still open
+[2026-03-22T16:07:03.435879]   OPEN: structure-001 issue #17 still open
+[2026-03-22T16:07:03.872604]   OPEN: vegetation-001 issue #18 still open
+[2026-03-22T16:07:04.114180]   OPEN: ingestion-001 issue #21 still open
+[2026-03-22T16:07:04.367307]   OPEN: viewer-001 issue #23 still open
+[2026-03-22T16:07:04.367391] No status changes detected.
+[2026-03-22T19:58:17.790992]   DONE: terrain-001 (issue #16 closed as completed)
+[2026-03-22T19:58:18.020648]   DONE: structure-001 (issue #17 closed as completed)
+[2026-03-22T19:58:18.274901]   OPEN: vegetation-001 issue #18 still open
+[2026-03-22T19:58:18.507545]   DONE: ingestion-001 (issue #21 closed as completed)
+[2026-03-22T19:58:18.750293]   DONE: viewer-001 (issue #23 closed as completed)
+[2026-03-22T19:58:18.756532] Tasks updated.
+[2026-03-22T19:58:43.220012]   OPEN: vegetation-001 issue #18 still open
+[2026-03-22T19:58:43.220252] No status changes detected.
+[2026-03-22T20:07:45.845986]   DONE: vegetation-001 (issue #18 closed as completed)
+[2026-03-22T20:07:45.852215] Tasks updated.
+[2026-03-22T20:07:56.077233] No status changes detected.
