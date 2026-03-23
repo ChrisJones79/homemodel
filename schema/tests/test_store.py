@@ -246,3 +246,214 @@ class TestGetHistory:
         store.upsert_entity(entity_tree)
         history = store.get_history(entity_tree["id"])
         assert history["revisions"][0]["timestamp"] == entity_tree["provenance"]["timestamp"]
+
+
+# ===========================================================================
+# Surface 6 — attach_image
+# ===========================================================================
+
+
+class TestAttachImage:
+    def test_attach_image_to_entity_returns_image_id(self, store, entity_tree):
+        store.upsert_entity(entity_tree)
+        image_record = {
+            "file_path": "/data/images/test.jpg",
+            "format": "jpeg",
+            "size_bytes": 1000000,
+            "capture_gps": {"lat": 42.98743, "lon": -70.98709, "alt_m": 63.4},
+            "capture_heading": {"yaw_deg": 180.0, "pitch_deg": -90.0, "roll_deg": 0.0},
+            "capture_timestamp": "2026-03-19T11:00:00Z",
+            "source_type": "drone_aerial",
+            "linked_entity_ids": []
+        }
+        image_id = store.attach_image(entity_tree["id"], image_record)
+        assert image_id is not None
+        assert isinstance(image_id, str)
+
+    def test_attach_standalone_image_without_entity(self, store):
+        image_record = {
+            "file_path": "/data/images/standalone.jpg",
+            "format": "jpeg",
+            "size_bytes": 500000,
+            "capture_gps": {"lat": 42.98743, "lon": -70.98709, "alt_m": 63.4},
+            "capture_timestamp": "2026-03-19T12:00:00Z",
+            "source_type": "phone"
+        }
+        image_id = store.attach_image(None, image_record)
+        assert image_id is not None
+
+    def test_attach_image_missing_required_field_raises(self, store, entity_tree):
+        store.upsert_entity(entity_tree)
+        bad_image = {
+            "file_path": "/data/images/test.jpg",
+            "format": "jpeg",
+            # missing size_bytes, capture_gps, capture_timestamp, source_type
+        }
+        with pytest.raises(ValueError, match="missing required fields"):
+            store.attach_image(entity_tree["id"], bad_image)
+
+    def test_attach_image_to_nonexistent_entity_raises(self, store):
+        image_record = {
+            "file_path": "/data/images/test.jpg",
+            "format": "jpeg",
+            "size_bytes": 1000000,
+            "capture_gps": {"lat": 42.98743, "lon": -70.98709, "alt_m": 63.4},
+            "capture_timestamp": "2026-03-19T11:00:00Z",
+            "source_type": "drone_aerial"
+        }
+        with pytest.raises(KeyError, match="Entity not found"):
+            store.attach_image("nonexistent-id", image_record)
+
+    def test_attach_image_with_linked_entities(self, store, entity_tree):
+        store.upsert_entity(entity_tree)
+        image_record = {
+            "file_path": "/data/images/test.jpg",
+            "format": "jpeg",
+            "size_bytes": 1000000,
+            "capture_gps": {"lat": 42.98743, "lon": -70.98709, "alt_m": 63.4},
+            "capture_timestamp": "2026-03-19T11:00:00Z",
+            "source_type": "drone_aerial",
+            "linked_entity_ids": [entity_tree["id"]]
+        }
+        image_id = store.attach_image(entity_tree["id"], image_record)
+        assert image_id is not None
+
+
+# ===========================================================================
+# Surface 7 — bulk_upsert
+# ===========================================================================
+
+
+class TestBulkUpsert:
+    def test_bulk_upsert_creates_new_entities(self, store, entity_tree):
+        batch = {
+            "source": "test_import",
+            "entities": [entity_tree],
+            "conflict_strategy": "skip"
+        }
+        result = store.bulk_upsert(batch)
+        assert result["created"] == 1
+        assert result["updated"] == 0
+        assert result["skipped"] == 0
+        assert result["total"] == 1
+
+    def test_bulk_upsert_skip_strategy_skips_existing(self, store, entity_tree):
+        # Create entity first
+        store.upsert_entity(entity_tree)
+        # Try to bulk upsert with skip strategy
+        batch = {
+            "source": "test_import",
+            "entities": [entity_tree],
+            "conflict_strategy": "skip"
+        }
+        result = store.bulk_upsert(batch)
+        assert result["created"] == 0
+        assert result["updated"] == 0
+        assert result["skipped"] == 1
+
+    def test_bulk_upsert_overwrite_strategy_updates_existing(self, store, entity_tree):
+        # Create entity first
+        store.upsert_entity(entity_tree)
+        # Modify entity and bulk upsert with overwrite strategy
+        modified = copy.deepcopy(entity_tree)
+        modified["properties"]["dbh_cm"] = 100
+        batch = {
+            "source": "test_import",
+            "entities": [modified],
+            "conflict_strategy": "overwrite"
+        }
+        result = store.bulk_upsert(batch)
+        assert result["created"] == 0
+        assert result["updated"] == 1
+        assert result["skipped"] == 0
+        # Verify entity was updated
+        fetched = store.get_entity(entity_tree["id"])
+        assert fetched["properties"]["dbh_cm"] == 100
+        assert fetched["version"] == 2
+
+    def test_bulk_upsert_version_bump_strategy_updates_existing(self, store, entity_tree):
+        # Create entity first
+        store.upsert_entity(entity_tree)
+        # Modify entity and bulk upsert with version_bump strategy
+        modified = copy.deepcopy(entity_tree)
+        modified["properties"]["dbh_cm"] = 95
+        batch = {
+            "source": "test_import",
+            "entities": [modified],
+            "conflict_strategy": "version_bump"
+        }
+        result = store.bulk_upsert(batch)
+        assert result["created"] == 0
+        assert result["updated"] == 1
+        assert result["skipped"] == 0
+        # Verify entity was updated and version incremented
+        fetched = store.get_entity(entity_tree["id"])
+        assert fetched["properties"]["dbh_cm"] == 95
+        assert fetched["version"] == 2
+
+    def test_bulk_upsert_multiple_entities(self, store, entity_tree):
+        second = copy.deepcopy(entity_tree)
+        second["id"] = "660e8400-e29b-41d4-a716-446655440001"
+        third = copy.deepcopy(entity_tree)
+        third["id"] = "770e8400-e29b-41d4-a716-446655440002"
+
+        batch = {
+            "source": "test_import",
+            "entities": [entity_tree, second, third],
+            "conflict_strategy": "skip"
+        }
+        result = store.bulk_upsert(batch)
+        assert result["created"] == 3
+        assert result["total"] == 3
+
+    def test_bulk_upsert_invalid_conflict_strategy_raises(self, store):
+        batch = {
+            "source": "test_import",
+            "entities": [],
+            "conflict_strategy": "invalid_strategy"
+        }
+        with pytest.raises(ValueError, match="Invalid conflict_strategy"):
+            store.bulk_upsert(batch)
+
+    def test_bulk_upsert_missing_required_field_raises(self, store):
+        batch = {
+            "source": "test_import",
+            "entities": []
+            # missing conflict_strategy
+        }
+        with pytest.raises(ValueError, match="missing required fields"):
+            store.bulk_upsert(batch)
+
+    def test_bulk_upsert_with_invalid_entity_records_errors(self, store):
+        bad_entity = {
+            "id": "invalid-entity",
+            "type": "tree",
+            # missing required fields
+        }
+        batch = {
+            "source": "test_import",
+            "entities": [bad_entity],
+            "conflict_strategy": "skip"
+        }
+        result = store.bulk_upsert(batch)
+        assert result["created"] == 0
+        assert len(result["errors"]) == 1
+        assert result["errors"][0]["id"] == "invalid-entity"
+
+    def test_bulk_upsert_mixed_new_and_existing(self, store, entity_tree):
+        # Create first entity
+        store.upsert_entity(entity_tree)
+        # Create second new entity
+        second = copy.deepcopy(entity_tree)
+        second["id"] = "660e8400-e29b-41d4-a716-446655440001"
+
+        batch = {
+            "source": "test_import",
+            "entities": [entity_tree, second],
+            "conflict_strategy": "skip"
+        }
+        result = store.bulk_upsert(batch)
+        assert result["created"] == 1  # only second is new
+        assert result["skipped"] == 1  # first already exists
+        assert result["total"] == 2
+

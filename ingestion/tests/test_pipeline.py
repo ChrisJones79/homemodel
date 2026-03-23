@@ -368,7 +368,8 @@ class TestSubmitImage:
         image["linked_entity_ids"] = ["550e8400-e29b-41d4-a716-446655440000"]
         pipeline = Ingestion()
         result = pipeline.submit_image(image)
-        assert "linked_entities" in result
+        assert "image_id" in result
+        assert result["status"] == "attached"
 
 
 # ===========================================================================
