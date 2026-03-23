@@ -3,8 +3,11 @@ backend/main.py — FastAPI server that exposes backend_to_viewer contract surfa
 
 Endpoints
 ---------
-GET /scene/manifest   → SceneManifest
-GET /nav/viewpoints   → ViewpointList
+GET /scene/manifest                             → SceneManifest
+GET /nav/viewpoints                             → ViewpointList
+GET /entities?bbox=sw_lat,sw_lon,ne_lat,ne_lon  → EntityList
+GET /entities/{id}                              → Entity
+POST /entities                                  → UpsertResult
 
 Mode is controlled by the HOMEMODEL_MODE environment variable:
   - "stub"  (default) — returns fixture data verbatim from the contract
@@ -19,8 +22,9 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from typing import Any
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -80,6 +84,52 @@ class ViewpointList(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Pydantic models for schema_to_backend contract surfaces.
+# ---------------------------------------------------------------------------
+
+
+class Provenance(BaseModel):
+    source_type: str
+    source_id: str
+    timestamp: str
+    accuracy_m: float
+
+
+class PositionGPS(BaseModel):
+    lat: float
+    lon: float
+    alt_m: float
+
+
+class Entity(BaseModel):
+    id: str
+    type: str
+    geometry: Any
+    position_gps: PositionGPS
+    provenance: Provenance
+    version: int
+    properties: dict[str, Any] = {}
+
+
+class EntitySummary(BaseModel):
+    id: str
+    type: str
+    bounds: PositionGPS
+    version: int
+
+
+class EntityList(BaseModel):
+    entities: list[EntitySummary]
+    total_count: int
+
+
+class UpsertResult(BaseModel):
+    id: str
+    version: int
+    status: str
+
+
+# ---------------------------------------------------------------------------
 # Fixture data — mirrors test_fixtures in contracts/backend_to_viewer.yaml
 # ---------------------------------------------------------------------------
 
@@ -107,6 +157,40 @@ _FIXTURE_VIEWPOINTS = ViewpointList(
             indoor=False,
         )
     ]
+)
+
+# Entity fixtures — mirrors test_fixtures in contracts/schema_to_backend.yaml
+_FIXTURE_ENTITY_TREE = Entity(
+    id="550e8400-e29b-41d4-a716-446655440000",
+    type="tree",
+    geometry=[[42.98750, -70.98720], [42.98750, -70.98719]],
+    position_gps=PositionGPS(lat=42.98750, lon=-70.98720, alt_m=28.0),
+    provenance=Provenance(
+        source_type="manual",
+        source_id="initial_survey",
+        timestamp="2026-03-18T12:00:00Z",
+        accuracy_m=1.0,
+    ),
+    version=1,
+    properties={"species": "white_oak", "dbh_cm": 85, "canopy_radius_m": 8.5},
+)
+
+_FIXTURE_ENTITY_LIST = EntityList(
+    entities=[
+        EntitySummary(
+            id=_FIXTURE_ENTITY_TREE.id,
+            type=_FIXTURE_ENTITY_TREE.type,
+            bounds=_FIXTURE_ENTITY_TREE.position_gps,
+            version=_FIXTURE_ENTITY_TREE.version,
+        )
+    ],
+    total_count=1,
+)
+
+_FIXTURE_UPSERT_RESULT = UpsertResult(
+    id=_FIXTURE_ENTITY_TREE.id,
+    version=1,
+    status="created",
 )
 
 # ---------------------------------------------------------------------------
@@ -218,7 +302,7 @@ def create_app(mode: str | None = None) -> FastAPI:
         CORSMiddleware,
         allow_origins=cors_origins,
         allow_credentials=False,
-        allow_methods=["GET"],
+        allow_methods=["GET", "POST"],
         allow_headers=["*"],
     )
 
@@ -319,6 +403,116 @@ def create_app(mode: str | None = None) -> FastAPI:
         if resolved_mode == "stub":
             return Response(content=_STUB_GLB, media_type="application/octet-stream")
         raise HTTPException(status_code=501, detail="Entity mesh generation not yet implemented")
+
+    # ------------------------------------------------------------------
+    # Endpoint: GET /entities?bbox=sw_lat,sw_lon,ne_lat,ne_lon
+    # ------------------------------------------------------------------
+
+    @application.get(
+        "/entities",
+        response_model=EntityList,
+        summary="EntityList — entities within a bounding box",
+    )
+    def get_entities(
+        bbox: str = Query(
+            ...,
+            description="Bounding box as sw_lat,sw_lon,ne_lat,ne_lon",
+        ),
+    ) -> EntityList:
+        """Return all entities whose GPS position falls within *bbox*.
+
+        In **stub** mode returns the fixture EntityList.
+        In **real** mode queries SchemaStore.query_region.
+        """
+        if resolved_mode == "stub":
+            return _FIXTURE_ENTITY_LIST
+
+        # --- real mode ---
+        parts = bbox.split(",")
+        if len(parts) != 4:
+            raise HTTPException(
+                status_code=422,
+                detail="bbox must be four comma-separated floats: sw_lat,sw_lon,ne_lat,ne_lon",
+            )
+        try:
+            sw_lat, sw_lon, ne_lat, ne_lon = (float(p) for p in parts)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"bbox values must be numeric: {exc}",
+            ) from exc
+
+        try:
+            store = application.state.store
+            result = store.query_region(
+                {"sw_lat": sw_lat, "sw_lon": sw_lon, "ne_lat": ne_lat, "ne_lon": ne_lon}
+            )
+        except Exception as exc:
+            _logger.error("SchemaStore error in GET /entities: %s", exc)
+            raise HTTPException(status_code=503, detail="SchemaStore unavailable") from exc
+
+        return EntityList(**result)
+
+    # ------------------------------------------------------------------
+    # Endpoint: GET /entities/{entity_id}
+    # ------------------------------------------------------------------
+
+    @application.get(
+        "/entities/{entity_id}",
+        response_model=Entity,
+        summary="Entity — full entity record by id",
+    )
+    def get_entity(entity_id: str) -> Entity:
+        """Return the full Entity record for *entity_id*.
+
+        In **stub** mode returns the fixture entity regardless of id.
+        In **real** mode queries SchemaStore.get_entity.
+        """
+        if resolved_mode == "stub":
+            return _FIXTURE_ENTITY_TREE
+
+        # --- real mode ---
+        try:
+            store = application.state.store
+            data = store.get_entity(entity_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except Exception as exc:
+            _logger.error("SchemaStore error in GET /entities/%s: %s", entity_id, exc)
+            raise HTTPException(status_code=503, detail="SchemaStore unavailable") from exc
+
+        return Entity(**data)
+
+    # ------------------------------------------------------------------
+    # Endpoint: POST /entities
+    # ------------------------------------------------------------------
+
+    @application.post(
+        "/entities",
+        response_model=UpsertResult,
+        status_code=201,
+        summary="UpsertResult — create or update an entity",
+    )
+    def post_entities(entity: Entity) -> UpsertResult:
+        """Create or update an entity.
+
+        In **stub** mode returns the fixture UpsertResult.
+        In **real** mode calls SchemaStore.upsert_entity.
+        """
+        if resolved_mode == "stub":
+            return _FIXTURE_UPSERT_RESULT
+
+        # --- real mode ---
+        try:
+            store = application.state.store
+            result = store.upsert_entity(entity.model_dump())
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        except Exception as exc:
+            _logger.error("SchemaStore error in POST /entities: %s", exc)
+            raise HTTPException(status_code=503, detail="SchemaStore unavailable") from exc
+
+        return UpsertResult(**result)
 
     return application
 
