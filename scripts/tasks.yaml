@@ -188,7 +188,7 @@ tasks:
     '
   id: schema-003
   issue_number: 27
-  status: dispatched
+  status: done
   title: Implement SchemaStore.get_history with entity revision tracking
 - acceptance:
   - pytest backend/ --tb=short -v passes
@@ -234,7 +234,7 @@ tasks:
     \ response body.\n"
   id: backend-003
   issue_number: 28
-  status: dispatched
+  status: done
   title: Stub GET /scene/tiles and GET /entities/{id}/mesh GLB endpoints
 - acceptance:
   - pytest schema/tests/ passes
@@ -267,7 +267,7 @@ tasks:
     '
   id: ingestion-002
   issue_number: 29
-  status: dispatched
+  status: done
   title: Implement SchemaStore.attach_image and bulk_upsert with conflict strategies
 - acceptance:
   - Viewer opens in browser with no console errors (stub mode)
