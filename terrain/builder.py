@@ -162,7 +162,6 @@ class TerrainBuilder:
         # 6. Log BuildRecord
         # ------------------------------------------------------------------
         build_record: dict[str, Any] = {
-            "id": str(uuid.uuid4()),
             "domain": "terrain",
             "timestamp": now_iso,
             "source_inputs": [
