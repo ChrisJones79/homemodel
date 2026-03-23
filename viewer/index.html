@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HomeModel 3D Viewer</title>
+
+  <!-- Three.js import map — resolves bare specifiers used in all JS modules.
+       Paths point to a vendored copy so the viewer works offline / in stub mode
+       without any CDN access. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three/build/three.module.js",
+      "three/addons/": "./vendor/three/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    /* -----------------------------------------------------------------------
+       Base reset
+    ----------------------------------------------------------------------- */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    /* -----------------------------------------------------------------------
+       Render target
+    ----------------------------------------------------------------------- */
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+
+    #canvas-container canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* -----------------------------------------------------------------------
+       Navigation overlay
+    ----------------------------------------------------------------------- */
+    #nav-overlay {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.70);
+      border-radius: 8px;
+      padding: 12px;
+      min-width: 160px;
+      backdrop-filter: blur(4px);
+    }
+
+    #nav-overlay h3 {
+      margin: 0 0 8px 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e0e0e0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    #nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Viewpoint buttons */
+    .nav-btn {
+      display: block;
+      width: 100%;
+      padding: 7px 12px;
+      background: rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 5px;
+      color: #f0f0f0;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .nav-btn:hover,
+    .nav-btn:focus-visible {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: rgba(255, 255, 255, 0.40);
+      outline: none;
+    }
+
+    .nav-btn:active {
+      background: rgba(255, 255, 255, 0.30);
+    }
+
+    /* Indoor viewpoints get a subtle tint */
+    .nav-btn--indoor {
+      border-color: rgba(100, 180, 255, 0.40);
+    }
+
+    .nav-btn--indoor::before {
+      content: '🏠 ';
+      font-size: 11px;
+    }
+
+    /* -----------------------------------------------------------------------
+       VR entry button
+    ----------------------------------------------------------------------- */
+    #vr-button {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 100;
+      padding: 12px 24px;
+      background: #1a1a1a;
+      border: 2px solid #ff6d00;
+      border-radius: 6px;
+      color: #ff6d00;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+      text-transform: uppercase;
+    }
+
+    #vr-button:hover,
+    #vr-button:focus-visible {
+      background: #ff6d00;
+      color: #fff;
+      box-shadow: 0 0 16px rgba(255, 109, 0, 0.55);
+      outline: none;
+    }
+
+    #vr-button:active {
+      background: #e65100;
+      border-color: #e65100;
+    }
+
+    #vr-button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      border-color: #555;
+      color: #555;
+    }
+
+    /* -----------------------------------------------------------------------
+       Stub-mode indicator
+    ----------------------------------------------------------------------- */
+    #stub-indicator {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 200;
+      padding: 5px 10px;
+      background: rgba(255, 179, 0, 0.85);
+      color: #1a1a1a;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.10em;
+      border-radius: 4px;
+      text-transform: uppercase;
+      display: none; /* shown by inline script below if ?stub=1 */
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Three.js render target -->
+  <div id="canvas-container"></div>
+
+  <!-- Navigation viewpoints overlay -->
+  <div id="nav-overlay">
+    <h3>Viewpoints</h3>
+    <div id="nav-menu">
+      <!-- Populated by nav.js -->
+    </div>
+  </div>
+
+  <!-- Stub-mode badge (shown when ?stub=1 or HOMEMODEL_MODE=stub) -->
+  <div id="stub-indicator">STUB MODE</div>
+
+  <!-- VR entry button -->
+  <button id="vr-button" type="button">Enter VR</button>
+
+  <!-- Reveal stub indicator if appropriate, before modules load -->
+  <script>
+    (function () {
+      var isStub =
+        new URLSearchParams(location.search).get('stub') === '1' ||
+        window.HOMEMODEL_MODE === 'stub';
+      if (isStub) {
+        document.getElementById('stub-indicator').style.display = 'block';
+      }
+
+      // Disable the VR button if WebXR is unavailable.
+      if (!navigator.xr) {
+        var btn = document.getElementById('vr-button');
+        btn.disabled = true;
+        btn.title = 'WebXR not available in this browser';
+      }
+    })();
+  </script>
+
+  <!-- Main scene bootstrap (ES module) -->
+  <script type="module" src="./scene.js"></script>
+
+  <!-- VR button handler — loaded as a module so it can dynamic-import xr.js -->
+  <script type="module">
+    document.getElementById('vr-button').addEventListener('click', async () => {
+      const { requestXRSession } = await import('./xr.js');
+      const config = await requestXRSession();
+      if (config) {
+        console.log('[index] XR session started:', config);
+      }
+    });
+  </script>
+
+</body>
+</html>

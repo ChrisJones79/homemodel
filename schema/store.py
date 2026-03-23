@@ -46,13 +46,13 @@ CREATE TABLE IF NOT EXISTS entity_history (
 
 _CREATE_BUILD_RECORDS = """
 CREATE TABLE IF NOT EXISTS build_records (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    id               TEXT PRIMARY KEY,
     domain           TEXT NOT NULL,
-    timestamp        TEXT NOT NULL,
-    source_inputs    TEXT NOT NULL DEFAULT '[]',   -- JSON array
+    timestamp        TEXT NOT NULL,     -- ISO-8601
+    source_inputs    TEXT NOT NULL,     -- JSON array
     entities_written INTEGER NOT NULL DEFAULT 0,
     entities_updated INTEGER NOT NULL DEFAULT 0,
-    errors           TEXT NOT NULL DEFAULT '[]'    -- JSON array
+    errors           TEXT NOT NULL DEFAULT '[]'  -- JSON array
 );
 """
 
@@ -357,78 +357,58 @@ class SchemaStore:
         return {"id": id, "revisions": revisions}
 
     # ------------------------------------------------------------------
-    # Surface 5 — log_build  (BuildRecord, domains_to_schema contract)
+    # Surface 5 — log_build  (BuildRecord)
     # ------------------------------------------------------------------
 
-    def log_build(self, build_record: dict) -> dict[str, Any]:
-        """Persist a domain build record.
+    def log_build(self, record: dict) -> dict[str, Any]:
+        """Persist a BuildRecord produced by a domain builder.
 
         Parameters
         ----------
-        build_record:
-            Dict matching the BuildRecord contract fields::
-
-                {
-                    "domain":            str,   # "terrain" | "structures" | "vegetation"
-                    "timestamp":         str,   # ISO-8601
-                    "source_inputs":     list,  # [{type, id, path}, ...]
-                    "entities_written":  int,
-                    "entities_updated":  int,
-                    "errors":            list,  # [{entity_id, message}, ...]
-                }
+        record:
+            Dict with keys: id, domain, timestamp, source_inputs,
+            entities_written, entities_updated, errors.
 
         Returns
         -------
-        The stored record dict with an additional ``"id"`` key (auto-increment
-        integer assigned by the database).
+        ``{"id": str, "status": "logged"}``
         """
-        required = ("domain", "timestamp", "entities_written", "entities_updated")
-        missing = [f for f in required if f not in build_record]
+        required = ("id", "domain", "timestamp")
+        missing = [f for f in required if f not in record]
         if missing:
             raise ValueError(f"BuildRecord is missing required fields: {missing}")
 
+        record_id: str = record["id"]
         with self._conn:
-            cursor = self._conn.execute(
+            self._conn.execute(
                 """
-                INSERT INTO build_records
-                    (domain, timestamp, source_inputs,
+                INSERT OR REPLACE INTO build_records
+                    (id, domain, timestamp, source_inputs,
                      entities_written, entities_updated, errors)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    build_record["domain"],
-                    build_record["timestamp"],
-                    json.dumps(build_record.get("source_inputs", [])),
-                    build_record["entities_written"],
-                    build_record["entities_updated"],
-                    json.dumps(build_record.get("errors", [])),
+                    record_id,
+                    record["domain"],
+                    record["timestamp"],
+                    json.dumps(record.get("source_inputs", [])),
+                    int(record.get("entities_written", 0)),
+                    int(record.get("entities_updated", 0)),
+                    json.dumps(record.get("errors", [])),
                 ),
             )
-        return {**build_record, "id": cursor.lastrowid}
+        return {"id": record_id, "status": "logged"}
 
-    def get_build_records(
-        self,
-        domain: str | None = None,
-    ) -> list[dict[str, Any]]:
-        """Return all stored build records, optionally filtered by domain.
-
-        Parameters
-        ----------
-        domain:
-            When provided only records for that domain are returned.
-
-        Returns
-        -------
-        List of build record dicts ordered by ``id`` ascending.
-        """
+    def get_build_records(self, domain: str | None = None) -> list[dict[str, Any]]:
+        """Return all logged BuildRecords, optionally filtered by *domain*."""
         if domain is not None:
             rows = self._conn.execute(
-                "SELECT * FROM build_records WHERE domain = ? ORDER BY id ASC",
+                "SELECT * FROM build_records WHERE domain = ? ORDER BY timestamp DESC",
                 (domain,),
             ).fetchall()
         else:
             rows = self._conn.execute(
-                "SELECT * FROM build_records ORDER BY id ASC"
+                "SELECT * FROM build_records ORDER BY timestamp DESC"
             ).fetchall()
 
         return [
