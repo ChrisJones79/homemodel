@@ -91,3 +91,12 @@
 [2026-03-23T13:52:34.013290] No status changes detected.
 [2026-03-23T10:11:24.248309] No status changes detected.
 [2026-03-23T10:11:48.016196] No status changes detected.
+[2026-03-23T10:20:56.988679] Dispatching: backend-002 — Add REST entity endpoints (GET/POST /entities, bbox query)
+[2026-03-23T10:21:00.035040]   ✓ Agent assigned via GraphQL
+[2026-03-23T10:21:00.035211]   → Issue #37 assigned to @copilot
+[2026-03-23T10:21:10.864742]   OPEN: backend-002 issue #37 still open
+[2026-03-23T10:21:10.864869] No status changes detected.
+[2026-03-23T14:59:35.316259]   OPEN: backend-002 issue #37 still open
+[2026-03-23T14:59:35.316392] No status changes detected.
+[2026-03-23T15:36:19.409050]   DONE: backend-002 (issue #37 closed as completed)
+[2026-03-23T15:36:19.419559] Tasks updated.
