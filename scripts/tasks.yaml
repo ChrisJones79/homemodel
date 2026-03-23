@@ -292,6 +292,6 @@ tasks:
     \ entity_tree fixture from contracts/schema_to_backend.yaml. Do not add any new\
     \ JS dependencies \u2014 use only Three.js already in vendor/.\n"
   id: viewer-002
-  issue_number: null
-  status: pending
+  issue_number: 39
+  status: done
   title: Entity pick and inspect panel in Three.js viewer

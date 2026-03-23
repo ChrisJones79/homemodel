@@ -100,3 +100,8 @@
 [2026-03-23T14:59:35.316392] No status changes detected.
 [2026-03-23T15:36:19.409050]   DONE: backend-002 (issue #37 closed as completed)
 [2026-03-23T15:36:19.419559] Tasks updated.
+[2026-03-23T15:45:18.268231] Dispatching: viewer-002 — Entity pick and inspect panel in Three.js viewer
+[2026-03-23T15:45:20.829047]   ✓ Agent assigned via GraphQL
+[2026-03-23T15:45:20.829221]   → Issue #39 assigned to @copilot
+[2026-03-23T16:22:57.667772]   DONE: viewer-002 (issue #39 closed as completed)
+[2026-03-23T16:22:57.678612] Tasks updated.
