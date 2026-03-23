@@ -295,3 +295,25 @@ tasks:
   issue_number: 39
   status: done
   title: Entity pick and inspect panel in Three.js viewer
+- acceptance:
+  - Root README.md exists and covers prerequisites, setup, POST /entities, and test strategy
+  - Subdirectory READMEs exist for backend, viewer, schema, and ingestion
+  - Add-to-store curl example is accurate and testable
+  agent: copilot
+  area: 7
+  custom_agent: null
+  depends_on:
+  - backend-002
+  - viewer-002
+  description: 'Generate README.md(s) for onboarding and local testing. Root README
+    covers prerequisites, quick start, environment variables, running backend and
+    viewer, POST /entities add-to-store walkthrough, test strategy, project layout,
+    contracts/fixtures index, and troubleshooting. Subdirectory READMEs for backend/,
+    viewer/, schema/, and ingestion/ cover module purpose and actionable run/test
+    examples.
+
+    '
+  id: docs-001
+  issue_number: 40
+  status: done
+  title: Generate README.md(s) for onboarding and local testing
