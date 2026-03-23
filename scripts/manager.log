@@ -84,3 +84,6 @@
 [2026-03-23T07:51:46.736936]   DONE: backend-003 (issue #28 closed as completed)
 [2026-03-23T07:51:47.025649]   DONE: ingestion-002 (issue #29 closed as completed)
 [2026-03-23T07:51:47.036696] Tasks updated.
+[2026-03-23T11:58:30.295511] Dispatching: backend-002 — Add REST entity endpoints (GET/POST /entities, bbox query)
+[2026-03-23T11:58:33.750068]   ⚠ Agent 'copilot' not found in suggestedActors. Available: ['anthropic-code-agent', 'openai-code-agent', 'ChrisJones79']
+[2026-03-23T11:58:33.750159]   ⚠ Assignment failed for #35; task left as pending for retry

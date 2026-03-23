@@ -211,7 +211,7 @@ tasks:
     \ In real mode delegate to SchemaStore on app.state.store. Add tests in backend/tests/test_manifest.py\
     \ or a new test_entities.py.\n"
   id: backend-002
-  issue_number: null
+  issue_number: 35
   status: pending
   title: Add REST entity endpoints (GET/POST /entities, bbox query)
 - acceptance:
