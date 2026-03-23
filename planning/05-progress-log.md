@@ -9,9 +9,9 @@ When picking up after a break, read the **Current State** section first.
 
 ## Current State
 
-**Phase:** Round 2 development — domain builders, ingestion, and viewer
+**Phase:** Round 3 development — REST entity endpoints, tile serving, history, and viewer inspection
 **Blocking:** Nothing
-**Next action:** Run `python scripts/manager.py dispatch` to create issues and assign agents for terrain-001, structure-001, vegetation-001, ingestion-001, and viewer-001
+**Next action:** Run `python scripts/manager.py dispatch` to create issues and assign agents for schema-003, backend-002, backend-003, ingestion-002, and viewer-002
 
 ---
 
@@ -56,10 +56,27 @@ When picking up after a break, read the **Current State** section first.
 **Did:**
 - [x] Marked schema-001, schema-002, backend-001 as done in tasks.yaml
 - [x] Added Round 2 tasks: terrain-001, structure-001, vegetation-001, ingestion-001, viewer-001
-- [ ] Run `python scripts/manager.py dispatch` to create issues for Round 2
+- [x] Ran `python scripts/manager.py dispatch` to create issues for Round 2
+- [x] Monitored PRs, reviewed and merged all five Round 2 PRs
 
-**Result:** tasks.yaml updated with 5 new pending tasks.
-**Next:** Run dispatch, monitor PRs, review and merge as they arrive
+**Result:** All Round 2 tasks merged. Full domain coverage: terrain, structures, vegetation, ingestion, Three.js viewer with WebXR.
+**Next:** Plan and dispatch Round 3
+
+---
+
+### Session: 2026-03-23
+**Did:**
+- [x] Confirmed all Round 2 implementations merged:
+  - terrain-001 (#16): TerrainBuilder + stub elevation grid, BuildRecord logging
+  - structure-001 (#17): StructureBuilder + wall/room extrusion, parent_id hierarchy
+  - vegetation-001 (#18): VegetationBuilder + canopy shapes/health enums, BuildRecord logging
+  - ingestion-001 (#21): Ingestion pipeline + validate/submit_measurement/submit_image/submit_bulk
+  - viewer-001 (#23): Three.js scene loader, tile manager, nav menu, WebXR handoff (stub mode)
+- [x] Updated tasks.yaml with Round 3 tasks (schema-003, backend-002, backend-003, ingestion-002, viewer-002)
+- [x] Updated progress log (this file)
+
+**Result:** Round 2 complete. tasks.yaml has 5 new pending Round 3 tasks. Ready to dispatch.
+**Next:** Run `python scripts/manager.py dispatch` to create issues for Round 3
 
 ---
 
@@ -70,11 +87,16 @@ When picking up after a break, read the **Current State** section first.
 | 1 | schema-001 | claude | — | done | SchemaStore upsert + get |
 | 11 | schema-002 | claude | — | done | SchemaStore query_region |
 | 12 | backend-001 | copilot | — | done | FastAPI skeleton, /scene/manifest + /nav/viewpoints |
-| TBD | terrain-001 | copilot | — | pending | TerrainBuilder + elevation parsing |
-| TBD | structure-001 | claude | — | pending | StructureBuilder + wall/room extrusion |
-| TBD | vegetation-001 | copilot | — | pending | VegetationBuilder + canopy shapes |
-| TBD | ingestion-001 | claude | — | pending | Ingestion pipeline + validation |
-| TBD | viewer-001 | copilot | — | pending | Three.js scene loader + nav + WebXR handoff |
+| 16 | terrain-001 | copilot | — | done | TerrainBuilder + elevation parsing |
+| 17 | structure-001 | claude | — | done | StructureBuilder + wall/room extrusion |
+| 18 | vegetation-001 | copilot | — | done | VegetationBuilder + canopy shapes |
+| 21 | ingestion-001 | claude | — | done | Ingestion pipeline + validation |
+| 23 | viewer-001 | copilot | — | done | Three.js scene loader + nav + WebXR handoff |
+| TBD | schema-003 | claude | — | pending | SchemaStore.get_history + entity revision diffs |
+| TBD | backend-002 | copilot | — | pending | REST entity endpoints (GET/POST /entities, bbox query) |
+| TBD | backend-003 | copilot | — | pending | GET /scene/tiles stub GLB + GET /entities/{id}/mesh stub |
+| TBD | ingestion-002 | claude | — | pending | SchemaStore.attach_image + bulk_upsert |
+| TBD | viewer-002 | copilot | — | pending | Entity pick/inspect panel |
 
 ## Decisions Made
 
@@ -83,6 +105,7 @@ can reference them later:
 
 1. **2026-03-22** — Round 1 (schema + backend skeleton) complete. Round 2 dispatches terrain, structures, vegetation, ingestion, and viewer in parallel — all depend only on schema-001 which is done.
 2. **2026-03-22** — viewer-001 depends on backend-001 (not the domain builders) because it uses stub data from the backend fixture, allowing parallel development.
+3. **2026-03-23** — Round 2 complete. All five domain builders + viewer merged. Round 3 focuses on wiring the layers together: REST entity CRUD (backend-002), tile/mesh serving (backend-003), entity history (schema-003), image attachment + bulk upsert (ingestion-002), and viewer entity inspection (viewer-002).
 
 ## Problems Encountered
 
