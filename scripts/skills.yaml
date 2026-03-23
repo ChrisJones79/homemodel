@@ -1,0 +1,144 @@
+# scripts/skills.yaml
+# Synthesized from:
+#   .github/agents/*.agent.md  — per-area agent skill definitions
+#   planning/04-skill-files.md — skill file conventions and templates
+#   contracts/*.yaml           — interface contracts between layers
+#   copilot-instructions.md    — top-level project conventions
+#
+# Used by manager.py locally and by .github/workflows/manager.yml in the browser.
+# Each skill maps a work area to the agent that owns it, its contracts, and its
+# validation commands.  The `agent_file` field is the custom-agent instruction
+# passed to GitHub Copilot / Claude / Codex when the issue is assigned.
+
+repo: ChrisJones79/homemodel
+base_branch: master
+
+skills:
+
+  - id: schema-builder
+    name: Schema Builder
+    description: Implements and tests the SchemaStore data layer
+    area: 1
+    agent: claude
+    agent_file: .github/agents/schema-builder.agent.md
+    contracts:
+      - contracts/schema_to_backend.yaml       # Entity, EntityList, UpsertResult, EntityHistory
+      - contracts/domains_to_schema.yaml        # TerrainPatch, StructureEntity, VegetationEntity, BuildRecord
+      - contracts/ingestion_to_schema.yaml      # Measurement, ImageRecord, EntityBatch, ValidationResult
+    validation: HOMEMODEL_MODE=stub pytest schema/ --tb=short -v
+    constraints:
+      - Python 3.11+, SQLite via built-in sqlite3 module
+      - Every entity requires id (UUID), type, geometry, position_gps, provenance, version
+      - Version increments on update — never overwrite without bumping
+      - Provenance is required on every write
+      - geometry stored as JSON text in SQLite
+      - position_gps stored as three columns lat REAL, lon REAL, alt_m REAL
+
+  - id: terrain-builder
+    name: Terrain Builder
+    description: Generates terrain mesh patches from elevation and aerial data
+    area: 2
+    agent: copilot
+    agent_file: .github/agents/terrain-builder.agent.md
+    contracts:
+      - contracts/domains_to_schema.yaml        # TerrainPatch, BuildRecord
+      - contracts/ingestion_to_schema.yaml      # ImageRecord (aerial images as input)
+    validation: HOMEMODEL_MODE=stub pytest terrain/ --tb=short -v
+    constraints:
+      - USGS NED elevation data as primary source (GeoTIFF)
+      - Output triangulated mesh as vertices + faces
+      - All positions in WGS84 GPS coordinates {lat, lon, alt_m}
+      - Scene origin lat 42.98743, lon -70.98709, alt_m 26.8
+      - In stub mode, use fixture elevation values — no network calls
+      - Log a BuildRecord for every generation run
+
+  - id: structure-builder
+    name: Structure Builder
+    description: Models structures, walls, and rooms from measurements and floor plans
+    area: 3
+    agent: claude
+    agent_file: .github/agents/structure-builder.agent.md
+    contracts:
+      - contracts/domains_to_schema.yaml        # StructureEntity, BuildRecord
+      - contracts/ingestion_to_schema.yaml      # Measurement (laser_p2p, image_derived)
+    validation: HOMEMODEL_MODE=stub pytest structures/ --tb=short -v
+    constraints:
+      - Structures are hierarchical — structure → walls → rooms
+      - parent_id links walls/rooms to their parent structure
+      - Openings (doors, windows) stored on walls with position offsets
+      - All dimensions in meters
+      - floor_level 0=ground, -1=basement, 1=second floor
+      - Provenance tracks which measurements contributed to each entity
+
+  - id: vegetation-builder
+    name: Vegetation Builder
+    description: Catalogs trees and vegetation as first-class entities
+    area: 4
+    agent: copilot
+    agent_file: .github/agents/vegetation-builder.agent.md
+    contracts:
+      - contracts/domains_to_schema.yaml        # VegetationEntity, BuildRecord
+    validation: HOMEMODEL_MODE=stub pytest vegetation/ --tb=short -v
+    constraints:
+      - Individual trees are first-class entities — not grouped or simplified
+      - Required fields position_gps, height_m, canopy_radius_m, canopy_shape
+      - species and dbh_cm are nullable until identified
+      - canopy_shape enum round, conical, spreading, columnar, irregular
+      - health enum healthy, stressed, dead, unknown
+      - tags array for freeform labeling (e.g. landmark, trail_marker)
+      - Log a BuildRecord for every catalog run
+
+  - id: viewer-builder
+    name: Viewer Builder
+    description: Implements the Three.js browser viewer and WebXR handoff
+    area: 5
+    agent: copilot
+    agent_file: .github/agents/viewer-builder.agent.md
+    contracts:
+      - contracts/backend_to_viewer.yaml        # SceneManifest, SceneTile, EntityMesh, ViewpointList
+      - contracts/viewer_to_webxr.yaml          # XRSessionConfig, XRSceneHandoff, XRNavEvent
+    validation: "# open viewer/index.html in a browser with ?stub=1 — no console errors"
+    constraints:
+      - Three.js for all rendering (vendor/ directory, no CDN)
+      - Y-up coordinate system, meters, origin at scene origin_gps
+      - glTF/GLB for all mesh data
+      - Viewer is a pure consumer — never writes back to the backend
+      - Must work with HOMEMODEL_MODE=stub (fetch from local fixture files)
+      - WebXR session shares the Three.js Scene — no scene duplication
+
+  - id: ingestion-builder
+    name: Ingestion Builder
+    description: Data ingestion pipeline for measurements, images, and bulk imports
+    area: 6
+    agent: claude
+    agent_file: .github/agents/ingestion-builder.agent.md
+    contracts:
+      - contracts/ingestion_to_schema.yaml      # Measurement, ImageRecord, EntityBatch, ValidationResult
+    validation: HOMEMODEL_MODE=stub pytest ingestion/ --tb=short -v
+    constraints:
+      - Validation runs before every submit — no unvalidated data enters SchemaStore
+      - Measurement types laser_p2p, gps_point, image_derived, drone_telemetry
+      - Image source types phone, drone_aerial, drone_ground, dslr, scan
+      - Bulk import requires a conflict_strategy skip, overwrite, or version_bump
+      - Provenance is mandatory on all measurements
+      - In stub mode, SchemaStore calls are mocked — pipeline logic still executes
+
+  - id: backend-builder
+    name: Backend Builder
+    description: FastAPI server bridging SchemaStore to the 3D viewer
+    area: 7
+    agent: copilot
+    agent_file: .github/agents/backend-builder.agent.md
+    contracts:
+      - contracts/backend_to_viewer.yaml        # SceneManifest, SceneTile, EntityMesh, ViewpointList
+      - contracts/schema_to_backend.yaml        # Entity, EntityList (what SchemaStore returns)
+    validation: |
+      HOMEMODEL_MODE=stub pytest backend/ --tb=short -v
+      HOMEMODEL_MODE=stub uvicorn backend.main:app --port 8000 &
+      curl -s localhost:8000/scene/manifest | python -m json.tool
+      kill %1
+    constraints:
+      - FastAPI + uvicorn
+      - CORS enabled for LAN access
+      - All responses match contract field names exactly
+      - No direct SQLite access — always go through SchemaStore
