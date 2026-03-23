@@ -98,6 +98,8 @@ When picking up after a break, read the **Current State** section first.
 | TBD | ingestion-002 | claude | — | pending | SchemaStore.attach_image + bulk_upsert |
 | TBD | viewer-002 | copilot | — | pending | Entity pick/inspect panel |
 
+| TBD | docs-001 | copilot | — | done | README.md root + subdirectory onboarding docs |
+
 ## Decisions Made
 
 Record key decisions here so you (and Claude in this project chat)
@@ -106,6 +108,24 @@ can reference them later:
 1. **2026-03-22** — Round 1 (schema + backend skeleton) complete. Round 2 dispatches terrain, structures, vegetation, ingestion, and viewer in parallel — all depend only on schema-001 which is done.
 2. **2026-03-22** — viewer-001 depends on backend-001 (not the domain builders) because it uses stub data from the backend fixture, allowing parallel development.
 3. **2026-03-23** — Round 2 complete. All five domain builders + viewer merged. Round 3 focuses on wiring the layers together: REST entity CRUD (backend-002), tile/mesh serving (backend-003), entity history (schema-003), image attachment + bulk upsert (ingestion-002), and viewer entity inspection (viewer-002).
+
+---
+
+### Session: 2026-03-23
+**Did:**
+- [x] Created root README.md (prerequisites, quick start, env vars, backend startup, viewer, POST /entities add-to-store walkthrough, test strategy, project layout, contracts/fixtures index, troubleshooting)
+- [x] Created backend/README.md (endpoints, stub/real modes, POST /entities test examples)
+- [x] Created viewer/README.md (stub/live mode, serve instructions, inspect panel, code layout)
+- [x] Created schema/README.md (SchemaStore API reference, quick usage, contract pointers)
+- [x] Created ingestion/README.md (pipeline methods, bulk import add-to-store example, conflict strategies)
+- [x] Added docs-001 task to scripts/tasks.yaml
+- [x] Updated this progress log
+
+**Agent:** copilot (docs-001)
+**Result:** Onboarding documentation complete. All steps are testable; add-to-store is exercised end-to-end in root README and backend/README.
+**Next:** No blocking items. Docs ready for peer review.
+
+---
 
 ## Problems Encountered
 
