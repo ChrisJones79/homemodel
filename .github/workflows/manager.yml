@@ -1,0 +1,109 @@
+# .github/workflows/manager.yml
+#
+# Browser-accessible equivalent of `python scripts/manager.py`.
+# Run from the GitHub Actions UI (Actions → HomeModel Manager → Run workflow)
+# or on a daily schedule (status check).
+#
+# All commands that write to tasks.yaml commit the result back to the branch,
+# so the queue stays in sync whether you run from a terminal or from the browser.
+#
+# Required permissions (automatically provided by GITHUB_TOKEN):
+#   issues: write      — create / read issues
+#   contents: write    — commit updated tasks.yaml + manager.log
+#   pull-requests: read — check PR state during status
+#
+# For the agent-assignment GraphQL call (dispatch command) the workflow uses
+# the built-in GITHUB_TOKEN.  If your repo requires a PAT with extra scopes,
+# store it as a secret named MANAGER_TOKEN and the workflow will prefer it.
+
+name: HomeModel Manager
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Manager command"
+        required: true
+        default: dispatch
+        type: choice
+        options:
+          - dispatch
+          - status
+          - ready
+          - mark-done
+      task_id:
+        description: "Task ID — required for mark-done (e.g. schema-003)"
+        required: false
+        default: ""
+
+  schedule:
+    # Check dispatched-task status every day at 09:00 UTC
+    - cron: "0 9 * * *"
+
+jobs:
+  manage:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history so we can push back to the branch
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Resolve command
+        id: cmd
+        run: |
+          # workflow_dispatch provides github.event.inputs.command;
+          # the schedule trigger uses the default "status".
+          CMD="${{ github.event.inputs.command }}"
+          CMD="${CMD:-status}"
+          echo "command=$CMD" >> "$GITHUB_OUTPUT"
+
+          TASK_ID="${{ github.event.inputs.task_id }}"
+          echo "task_id=$TASK_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Run manager — ${{ steps.cmd.outputs.command }}
+        env:
+          # Prefer MANAGER_TOKEN (PAT) for agent-assignment GraphQL; fall back to GITHUB_TOKEN.
+          GH_TOKEN: ${{ secrets.MANAGER_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          CMD="${{ steps.cmd.outputs.command }}"
+          TASK_ID="${{ steps.cmd.outputs.task_id }}"
+
+          if [ "$CMD" = "mark-done" ]; then
+            if [ -z "$TASK_ID" ]; then
+              echo "::error::task_id is required for mark-done"
+              exit 1
+            fi
+            python scripts/manager.py mark-done "$TASK_ID"
+          else
+            python scripts/manager.py "$CMD"
+          fi
+
+      - name: Commit updated tasks.yaml and manager.log
+        # Only runs after commands that may mutate the task queue.
+        if: >
+          steps.cmd.outputs.command == 'dispatch' ||
+          steps.cmd.outputs.command == 'status'   ||
+          steps.cmd.outputs.command == 'mark-done'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/tasks.yaml scripts/manager.log
+          # Exit gracefully when there is nothing new to commit.
+          git diff --staged --quiet && echo "No changes to commit." && exit 0
+          git commit -m "chore: manager ${{ steps.cmd.outputs.command }} [skip ci]"
+          git push
