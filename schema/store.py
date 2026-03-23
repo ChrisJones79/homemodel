@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import uuid
 from typing import Any
 
 # ---------------------------------------------------------------------------
@@ -366,19 +367,20 @@ class SchemaStore:
         Parameters
         ----------
         record:
-            Dict with keys: id, domain, timestamp, source_inputs,
+            Dict with keys: domain, timestamp, source_inputs,
             entities_written, entities_updated, errors.
+            The ``id`` field is auto-generated if not supplied.
 
         Returns
         -------
         ``{"id": str, "status": "logged"}``
         """
-        required = ("id", "domain", "timestamp")
+        required = ("domain", "timestamp")
         missing = [f for f in required if f not in record]
         if missing:
             raise ValueError(f"BuildRecord is missing required fields: {missing}")
 
-        record_id: str = record["id"]
+        record_id: str = record.get("id") or str(uuid.uuid4())
         with self._conn:
             self._conn.execute(
                 """

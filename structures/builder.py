@@ -163,7 +163,7 @@ class StructureBuilder:
             except Exception as e:
                 errors.append({"entity_id": room_id, "message": str(e)})
 
-        # Build and return BuildRecord
+        # Build and log BuildRecord
         build_record = {
             "domain": "structures",
             "timestamp": timestamp,
@@ -173,6 +173,7 @@ class StructureBuilder:
             "errors": errors,
         }
 
+        self.store.log_build(build_record)
         return build_record
 
     def _build_provenance(
