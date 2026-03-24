@@ -1,4 +1,7 @@
 {
     "MD036": false,
+    "MD060": false,
+    "MD022": false,
+    "MD031": false,
     "line-length": false
 }
