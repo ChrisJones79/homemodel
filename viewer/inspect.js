@@ -6,8 +6,8 @@
  * the backend (or the local stub fixture) and displayed in the #inspect-panel
  * overlay.
  *
- * In stub mode the actual entity id is ignored and ./fixtures/entity_tree.json
- * is always returned so that the panel can be exercised without a live backend.
+ * In stub mode each stub mesh has its own fixture file under ./fixtures/ so
+ * clicking different objects shows different entity data.
  */
 
 import * as THREE from 'three';
@@ -21,23 +21,108 @@ const _raycaster = new THREE.Raycaster();
 const _pointer   = new THREE.Vector2();
 
 // ---------------------------------------------------------------------------
-// Stub entity mesh — a small orange box so there is always something to click
-// in stub mode.
+// Stub entity meshes — a small set of visible objects so there is always
+// something to click without a live backend.
+//
+// Each entry maps an entityId to a fixture file and a mesh factory.
 // ---------------------------------------------------------------------------
 
-function _addStubEntityMesh() {
-  const geometry = new THREE.BoxGeometry(2, 3, 2);
-  const material = new THREE.MeshLambertMaterial({ color: 0xff6d00 });
-  const mesh     = new THREE.Mesh(geometry, material);
+const _STUB_ENTITIES = [
+  {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    fixture: './fixtures/entity_tree.json',
+    name: 'stub-tree-1',
+    make: (id) => {
+      const trunk = new THREE.CylinderGeometry(0.3, 0.4, 3, 8);
+      const mat   = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
+      const mesh  = new THREE.Mesh(trunk, mat);
+      mesh.position.set(5, 1.5, -5);
 
-  mesh.position.set(5, 1.5, -5);
-  mesh.castShadow    = true;
-  mesh.receiveShadow = true;
-  mesh.name          = 'stub-entity';
-  mesh.userData.entityId = '550e8400-e29b-41d4-a716-446655440000';
+      const canopy = new THREE.SphereGeometry(2.5, 10, 8);
+      const cmat   = new THREE.MeshLambertMaterial({ color: 0x2e7d32 });
+      const crown  = new THREE.Mesh(canopy, cmat);
+      crown.position.set(0, 2.5, 0);
+      crown.userData.entityId = id;
+      mesh.add(crown);
+      return mesh;
+    },
+  },
+  {
+    id: '550e8400-e29b-41d4-a716-446655440001',
+    fixture: './fixtures/entity_tree.json',
+    name: 'stub-tree-2',
+    make: (id) => {
+      const trunk = new THREE.CylinderGeometry(0.25, 0.35, 2.5, 8);
+      const mat   = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
+      const mesh  = new THREE.Mesh(trunk, mat);
+      mesh.position.set(-8, 1.25, -10);
 
-  scene.add(mesh);
-  console.log('[inspect] Stub entity mesh added at (5, 1.5, −5).');
+      const canopy = new THREE.SphereGeometry(2.0, 10, 8);
+      const cmat   = new THREE.MeshLambertMaterial({ color: 0x388e3c });
+      const crown  = new THREE.Mesh(canopy, cmat);
+      crown.position.set(0, 2.2, 0);
+      crown.userData.entityId = id;
+      mesh.add(crown);
+      return mesh;
+    },
+  },
+  {
+    id: '550e8400-e29b-41d4-a716-446655440002',
+    fixture: './fixtures/entity_wall.json',
+    name: 'stub-wall',
+    make: (_id) => {
+      const geo  = new THREE.BoxGeometry(8, 3, 0.3);
+      const mat  = new THREE.MeshLambertMaterial({ color: 0xbdbdbd });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(0, 1.5, -15);
+      return mesh;
+    },
+  },
+  {
+    id: '550e8400-e29b-41d4-a716-446655440003',
+    fixture: './fixtures/entity_structure.json',
+    name: 'stub-house',
+    make: (_id) => {
+      const group = new THREE.Group();
+
+      // Main building volume
+      const walls = new THREE.BoxGeometry(10, 5, 8);
+      const wmat  = new THREE.MeshLambertMaterial({ color: 0xe8d5b7 });
+      const body  = new THREE.Mesh(walls, wmat);
+      body.position.set(0, 2.5, 0);
+      group.add(body);
+
+      // Roof
+      const roof = new THREE.ConeGeometry(7.5, 3, 4);
+      const rmat = new THREE.MeshLambertMaterial({ color: 0x8d6e63 });
+      const apex = new THREE.Mesh(roof, rmat);
+      apex.position.set(0, 6.5, 0);
+      apex.rotation.y = Math.PI / 4;
+      group.add(apex);
+
+      group.position.set(-2, 0, -25);
+      return group;
+    },
+  },
+];
+
+/**
+ * Add all stub entity meshes to the scene.  Each mesh (or its child) carries
+ * the `userData.entityId` used by the raycaster to identify it.
+ */
+function _addStubEntityMeshes() {
+  for (const def of _STUB_ENTITIES) {
+    const mesh = def.make(def.id);
+    // Tag top-level mesh if no child already set entityId (e.g. tree crown).
+    if (!mesh.userData.entityId) {
+      mesh.userData.entityId = def.id;
+    }
+    mesh.name = def.name;
+    mesh.castShadow    = true;
+    mesh.receiveShadow = true;
+    scene.add(mesh);
+  }
+  console.log(`[inspect] ${_STUB_ENTITIES.length} stub entity meshes added.`);
 }
 
 // ---------------------------------------------------------------------------
@@ -53,9 +138,14 @@ function _addStubEntityMesh() {
  * @returns {Promise<Object>}
  */
 async function fetchEntity(id) {
-  const url = isStubMode
-    ? './fixtures/entity_tree.json'
-    : `/entities/${encodeURIComponent(id)}`;
+  let url;
+  if (isStubMode) {
+    // Look up the fixture file for this specific entity id.
+    const def = _STUB_ENTITIES.find((e) => e.id === id);
+    url = def ? def.fixture : './fixtures/entity_tree.json';
+  } else {
+    url = `/entities/${encodeURIComponent(id)}`;
+  }
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -184,9 +274,9 @@ function _onKeyDown(event) {
  * before the animation loop starts, once the scene is fully populated).
  */
 export function initInspect() {
-  // Add stub mesh only in stub mode so there is always something pickable.
+  // Add stub meshes only in stub mode so there is always something pickable.
   if (isStubMode) {
-    _addStubEntityMesh();
+    _addStubEntityMeshes();
   }
 
   // Canvas pointer handler — listen on window so we can compare event.target.
