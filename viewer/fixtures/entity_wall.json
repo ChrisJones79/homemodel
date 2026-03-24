@@ -1,0 +1,22 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440002",
+  "type": "wall",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [[-70.98720, 42.98738], [-70.98712, 42.98738]]
+  },
+  "position_gps": {"lat": 42.98738, "lon": -70.98716, "alt_m": 27.5},
+  "provenance": {
+    "source_type": "lidar",
+    "source_id": "survey_2026",
+    "timestamp": "2026-03-18T13:00:00Z",
+    "accuracy_m": 0.05
+  },
+  "version": 1,
+  "properties": {
+    "material": "vinyl_siding",
+    "height_m": 3.0,
+    "thickness_m": 0.15,
+    "facing": "south"
+  }
+}

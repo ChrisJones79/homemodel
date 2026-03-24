@@ -6,6 +6,7 @@
  */
 
 import { gpsToLocal, isStubMode } from './scene.js';
+import { debugStep } from './debug.js';
 
 /** @type {Array} ViewpointList.viewpoints after fetch */
 export let viewpoints = [];
@@ -27,8 +28,10 @@ export async function buildNavMenu(_scene, camera) {
     }
     const data = await response.json();
     viewpoints = data.viewpoints || [];
+    debugStep('nav', 'ok', `${viewpoints.length} viewpoint(s)`);
     console.log(`[nav] Loaded ${viewpoints.length} viewpoint(s).`);
   } catch (err) {
+    debugStep('nav', 'error', err.message);
     console.error('[nav] Could not load viewpoints:', err);
     viewpoints = [];
   }

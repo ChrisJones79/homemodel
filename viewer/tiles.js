@@ -7,6 +7,7 @@
 
 import * as THREE from 'three';
 import { scene, isStubMode } from './scene.js';
+import { debugStep } from './debug.js';
 
 // GLTFLoader is only needed in live mode; use a lazy dynamic import so that
 // stub mode never tries (and fails) to resolve the CDN path at parse time.
@@ -48,6 +49,7 @@ function _loadStubTerrain() {
   plane.name = 'stub-terrain';
 
   scene.add(plane);
+  debugStep('tiles', 'ok', 'stub 100×100 m plane');
   console.log('[tiles] Stub terrain added (100×100 m green plane).');
 
   // Notify xr.js about the nav mesh (import lazily to avoid circular dep).
@@ -84,6 +86,7 @@ async function _loadLiveTile(manifest) {
             }
           });
           scene.add(root);
+          debugStep('tiles', 'ok', url);
           console.log(`[tiles] GLB tile loaded: ${url}`);
 
           // Pass first mesh found as the nav mesh for XR teleport.
@@ -108,6 +111,7 @@ async function _loadLiveTile(manifest) {
       );
     });
   } catch (err) {
+    debugStep('tiles', 'error', err.message);
     console.error(`[tiles] Failed to load GLB tile from ${url}:`, err);
   }
 }

@@ -44,17 +44,23 @@ cd homemodel
 # 2. Install Python dependencies
 pip install -r requirements.txt
 
-# 3. Start the backend in stub mode (no database needed)
+# 3. Start the backend (serves the viewer + API on one port)
 HOMEMODEL_MODE=stub uvicorn backend.main:app --port 8000 --reload
 
 # 4. Open the viewer in your browser
-open viewer/index.html          # macOS
-xdg-open viewer/index.html      # Linux
-# Windows: double-click viewer/index.html
+open http://localhost:8000          # macOS
+xdg-open http://localhost:8000      # Linux
+# Windows: navigate to http://localhost:8000 in any browser
 ```
 
-The viewer fetches stub fixture data directly from the backend; no database
-bootstrapping is needed for stub mode.
+The backend now serves the viewer HTML/JS at `http://localhost:8000/`, so all
+API calls (`/scene/manifest`, `/nav/viewpoints`, etc.) are on the same origin —
+no CORS or `file://` issues.
+
+**Stub mode in the viewer:** append `?stub=1` to the URL
+(`http://localhost:8000/?stub=1`) to bypass the backend entirely and load all
+data from local `viewer/fixtures/` files.  This works even if the backend is
+not running.
 
 ---
 
@@ -115,20 +121,36 @@ Expected response (stub):
 
 ## Running the Viewer
 
-The viewer is a plain HTML page — no build step needed.
+The viewer is a plain HTML page — no build step, no Node.js needed.
+
+**Recommended (same-origin, all browsers):**
 
 ```bash
-# Serve from the viewer/ directory (avoids CORS issues with local fetch)
-cd viewer
-python -m http.server 8080
-# then open http://localhost:8080 in your browser
+# Start the backend — it serves the viewer at the root path
+HOMEMODEL_MODE=stub uvicorn backend.main:app --port 8000 --reload
+# then open http://localhost:8000 in Firefox or Chrome
 ```
 
-Or open `viewer/index.html` directly as a `file://` URL — this works in stub
-mode because fixture data is loaded via relative paths.
+**Stub-only (no backend):**
+
+```bash
+cd viewer
+python -m http.server 8080
+# then open http://localhost:8080/?stub=1
+```
+
+Or open `viewer/index.html` directly as a `file://` URL **with `?stub=1`** — the
+`file://` protocol works in both Firefox and Chrome for local fixture fetches.
+
+**Recommended browser:** Firefox or Chrome.  WebXR (VR button) requires
+Chrome/Edge with an attached headset; all other features work in Firefox.
+
+**On-screen debug overlay:** a small panel appears in the bottom-left showing
+loading status for the manifest, tiles, and viewpoints.  Press `` ` `` (backtick)
+or click the panel header to toggle it.
 
 **Stub mode in the viewer:** append `?stub=1` to the URL (e.g.
-`http://localhost:8080?stub=1`) or set `window.HOMEMODEL_MODE = 'stub'` in the
+`http://localhost:8000/?stub=1`) or set `window.HOMEMODEL_MODE = 'stub'` in the
 browser console. Stub mode loads from `viewer/fixtures/` without hitting the
 backend.
 
@@ -301,7 +323,8 @@ Test fixtures live in:
 |---|---|---|
 | `ModuleNotFoundError: fastapi` | Dependencies not installed | `pip install -r requirements.txt` |
 | Backend returns `{"detail":"Not Found"}` | Wrong URL or endpoint | Check `GET /scene/manifest` first |
-| Viewer shows blank scene | Backend not running | Start backend then reload viewer |
+| Viewer shows blank / black scene | Backend not running, or viewer opened as `file://` without `?stub=1` | Start backend then open `http://localhost:8000` |
+| Debug overlay shows ❌ manifest | Viewer not served from backend | Open `http://localhost:8000` or add `?stub=1` |
 | `POST /entities` returns `200` but data not persisted | Running in stub mode | Set `HOMEMODEL_MODE=real` |
 | `OperationalError: unable to open database` | DB path not writable | Check `SCHEMASTORE_DB_PATH` |
 | CORS errors in browser console | Backend CORS not configured | Set `CORS_ALLOW_ORIGINS=http://localhost:8080` |

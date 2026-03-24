@@ -1,0 +1,30 @@
+{
+  "id": "550e8400-e29b-41d4-a716-446655440003",
+  "type": "structure",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[
+      [-70.98718, 42.98744],
+      [-70.98710, 42.98744],
+      [-70.98710, 42.98737],
+      [-70.98718, 42.98737],
+      [-70.98718, 42.98744]
+    ]]
+  },
+  "position_gps": {"lat": 42.98741, "lon": -70.98714, "alt_m": 26.8},
+  "provenance": {
+    "source_type": "manual",
+    "source_id": "floor_plan_v1",
+    "timestamp": "2026-03-01T10:00:00Z",
+    "accuracy_m": 0.1
+  },
+  "version": 2,
+  "properties": {
+    "label": "Main House",
+    "floors": 2,
+    "footprint_m2": 185,
+    "year_built": 1987,
+    "roof_type": "gable",
+    "siding": "vinyl"
+  }
+}

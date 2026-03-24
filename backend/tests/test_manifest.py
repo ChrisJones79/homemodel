@@ -183,6 +183,57 @@ class TestNavViewpoints:
         assert front_door["position_gps"]["lon"] == pytest.approx(-70.98705)
         assert front_door["position_gps"]["alt_m"] == pytest.approx(27.3)
 
+    def test_fixture_viewpoint_count(self, stub_client: TestClient):
+        viewpoints = stub_client.get("/nav/viewpoints").json()["viewpoints"]
+        assert len(viewpoints) == 3, f"Expected 3 fixture viewpoints, got {len(viewpoints)}"
+
+    def test_fixture_backyard_viewpoint(self, stub_client: TestClient):
+        viewpoints = stub_client.get("/nav/viewpoints").json()["viewpoints"]
+        backyard = next((vp for vp in viewpoints if vp["id"] == "vp-backyard"), None)
+        assert backyard is not None, "Expected viewpoint 'vp-backyard' not found"
+        assert backyard["label"] == "Backyard"
+        assert backyard["indoor"] is False
+
+    def test_fixture_living_room_viewpoint(self, stub_client: TestClient):
+        viewpoints = stub_client.get("/nav/viewpoints").json()["viewpoints"]
+        living_room = next((vp for vp in viewpoints if vp["id"] == "vp-living-room"), None)
+        assert living_room is not None, "Expected viewpoint 'vp-living-room' not found"
+        assert living_room["label"] == "Living Room"
+        assert living_room["indoor"] is True
+
+
+# ---------------------------------------------------------------------------
+# GET / — static viewer serving
+# ---------------------------------------------------------------------------
+
+
+class TestStaticViewer:
+    """The backend must serve viewer/index.html at the root path."""
+
+    def test_root_returns_200(self, stub_client: TestClient):
+        response = stub_client.get("/")
+        assert response.status_code == 200, response.text
+
+    def test_root_returns_html(self, stub_client: TestClient):
+        response = stub_client.get("/")
+        assert "text/html" in response.headers.get("content-type", "")
+
+    def test_root_contains_homemodel_title(self, stub_client: TestClient):
+        response = stub_client.get("/")
+        assert "HomeModel" in response.text
+
+    def test_scene_js_served(self, stub_client: TestClient):
+        response = stub_client.get("/scene.js")
+        assert response.status_code == 200
+
+    def test_nav_js_served(self, stub_client: TestClient):
+        response = stub_client.get("/nav.js")
+        assert response.status_code == 200
+
+    def test_debug_js_served(self, stub_client: TestClient):
+        response = stub_client.get("/debug.js")
+        assert response.status_code == 200
+
 
 # ---------------------------------------------------------------------------
 # GET /scene/manifest — real mode

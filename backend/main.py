@@ -8,6 +8,7 @@ GET /nav/viewpoints                             → ViewpointList
 GET /entities?bbox=sw_lat,sw_lon,ne_lat,ne_lon  → EntityList
 GET /entities/{id}                              → Entity
 POST /entities                                  → UpsertResult
+GET /                                           → viewer/index.html (static files)
 
 Mode is controlled by the HOMEMODEL_MODE environment variable:
   - "stub"  (default) — returns fixture data verbatim from the contract
@@ -15,6 +16,10 @@ Mode is controlled by the HOMEMODEL_MODE environment variable:
 
 CORS allowed origins are configured via CORS_ALLOW_ORIGINS (comma-separated,
 defaults to "*" for unrestricted LAN access).
+
+The viewer static files (viewer/) are served at the root path so that
+http://localhost:8000/ opens the 3D viewer with all API calls on the same
+origin (no CORS or file:// issues).
 """
 from __future__ import annotations
 
@@ -22,10 +27,12 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 _logger = logging.getLogger(__name__)
@@ -155,7 +162,21 @@ _FIXTURE_VIEWPOINTS = ViewpointList(
             position_gps=ViewpointGPS(lat=42.98740, lon=-70.98705, alt_m=27.3),
             look_at_gps=ViewpointGPS(lat=42.98740, lon=-70.98700, alt_m=27.3),
             indoor=False,
-        )
+        ),
+        Viewpoint(
+            id="vp-backyard",
+            label="Backyard",
+            position_gps=ViewpointGPS(lat=42.98730, lon=-70.98715, alt_m=27.0),
+            look_at_gps=ViewpointGPS(lat=42.98735, lon=-70.98709, alt_m=27.0),
+            indoor=False,
+        ),
+        Viewpoint(
+            id="vp-living-room",
+            label="Living Room",
+            position_gps=ViewpointGPS(lat=42.98743, lon=-70.98709, alt_m=29.2),
+            look_at_gps=ViewpointGPS(lat=42.98743, lon=-70.98705, alt_m=29.2),
+            indoor=True,
+        ),
     ]
 )
 
@@ -513,6 +534,22 @@ def create_app(mode: str | None = None) -> FastAPI:
             raise HTTPException(status_code=503, detail="SchemaStore unavailable") from exc
 
         return UpsertResult(**result)
+
+    # ------------------------------------------------------------------
+    # Static files: serve viewer/ at root so http://localhost:8000/ opens
+    # the 3D viewer with all API calls on the same origin.
+    # API routes defined above take priority over the static-file catch-all.
+    # ------------------------------------------------------------------
+    _viewer_dir = Path(__file__).parent.parent / "viewer"
+    if _viewer_dir.is_dir():
+        application.mount(
+            "/",
+            StaticFiles(directory=str(_viewer_dir), html=True),
+            name="viewer",
+        )
+        _logger.info("Viewer static files served from %s", _viewer_dir)
+    else:
+        _logger.warning("viewer/ directory not found at %s — static serving disabled", _viewer_dir)
 
     return application
 

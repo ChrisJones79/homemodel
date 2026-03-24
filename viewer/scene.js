@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { loadTiles } from './tiles.js';
 import { buildNavMenu } from './nav.js';
 import { initInspect } from './inspect.js';
+import { debugStep, debugLog } from './debug.js';
 
 // ---------------------------------------------------------------------------
 // Stub-mode detection
@@ -123,19 +124,24 @@ export let manifest = null;
 // ---------------------------------------------------------------------------
 
 async function init() {
+  debugStep('mode', 'ok', isStubMode ? 'stub' : 'live');
+
   // 1. Fetch manifest -------------------------------------------------------
   const manifestUrl = isStubMode
     ? './fixtures/scene_manifest.json'
     : '/scene/manifest';
 
+  debugStep('manifest', 'loading');
   try {
     const response = await fetch(manifestUrl);
     if (!response.ok) {
       throw new Error(`Manifest fetch failed: ${response.status} ${response.statusText}`);
     }
     manifest = await response.json();
+    debugStep('manifest', 'ok', `${manifest.entity_count} entities`);
     console.log('[scene] Manifest loaded:', manifest);
   } catch (err) {
+    debugStep('manifest', 'error', err.message);
     console.error('[scene] Could not load manifest:', err);
     // In stub mode fall back to an empty-but-valid manifest so the viewer
     // still renders the stub geometry.
@@ -158,9 +164,17 @@ async function init() {
   }
 
   // 3. Load tiles -----------------------------------------------------------
-  await loadTiles(manifest);
+  debugStep('tiles', 'loading');
+  try {
+    await loadTiles(manifest);
+    debugStep('tiles', 'ok');
+  } catch (err) {
+    debugStep('tiles', 'error', err.message);
+    console.error('[scene] Tile load failed:', err);
+  }
 
   // 4. Build nav menu -------------------------------------------------------
+  debugStep('nav', 'loading');
   await buildNavMenu(scene, camera);
 
   // 5. Initialise entity inspector -------------------------------------------
@@ -171,6 +185,7 @@ async function init() {
     renderer.render(scene, camera);
   });
 
+  debugLog('Press ` to toggle this overlay');
   console.log('[scene] Initialisation complete. Stub mode:', isStubMode);
 }
 
