@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from dimensions import (
+from tools.plan_reader.dimensions import (
     parse_dimension,
     feet_inches_to_meters,
     meters_to_feet_inches,
