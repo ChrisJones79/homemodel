@@ -186,7 +186,7 @@ def feet_inches_to_meters(feet: float, inches: float = 0.0) -> float:
     return feet * _FT_TO_M + inches * _IN_TO_M
 
 
-def meters_to_feet_inches(meters: float) -> tuple:
+def meters_to_feet_inches(meters: float) -> tuple[int, float]:
     """Convert metres to whole feet and remaining inches.
 
     Returns
