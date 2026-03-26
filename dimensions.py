@@ -80,19 +80,28 @@ def parse_dimension(text: str) -> float:
 def _try_metric(text: str) -> float | None:
     """Try to parse as metric (meters or millimeters)."""
     # 3.048m or 3.048 m
-    m = re.match(r'^([\d.]+)\s*m$', text, re.IGNORECASE)
+    m = re.match(r'^(\d+(?:\.\d+)?)\s*m$', text, re.IGNORECASE)
     if m:
-        return float(m.group(1))
+        try:
+            return float(m.group(1))
+        except ValueError:
+            return None
 
     # 3048mm or 3048 mm
-    m = re.match(r'^([\d.]+)\s*mm$', text, re.IGNORECASE)
+    m = re.match(r'^(\d+(?:\.\d+)?)\s*mm$', text, re.IGNORECASE)
     if m:
-        return float(m.group(1)) / 1000.0
+        try:
+            return float(m.group(1)) / 1000.0
+        except ValueError:
+            return None
 
     # 304.8cm or 304.8 cm
-    m = re.match(r'^([\d.]+)\s*cm$', text, re.IGNORECASE)
+    m = re.match(r'^(\d+(?:\.\d+)?)\s*cm$', text, re.IGNORECASE)
     if m:
-        return float(m.group(1)) / 100.0
+        try:
+            return float(m.group(1)) / 100.0
+        except ValueError:
+            return None
 
     return None
 
