@@ -207,7 +207,7 @@ def validate_dimensions(
         List of discrepancies: {"name", "extracted_m", "annotated_m", "diff_m"}
     """
     discrepancies = []
-    for name in set(extracted) & set(annotated):
+    for name in sorted(set(extracted) & set(annotated)):
         diff = abs(extracted[name] - annotated[name])
         if diff > tolerance_m:
             discrepancies.append({
