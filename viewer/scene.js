@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { loadTiles } from './tiles.js';
 import { buildNavMenu } from './nav.js';
 import { initInspect } from './inspect.js';
+import { initWalk, updateWalk } from './walk.js';
 import { debugStep, debugLog } from './debug.js';
 
 // ---------------------------------------------------------------------------
@@ -163,6 +164,9 @@ async function init() {
     document.body.appendChild(renderer.domElement);
   }
 
+  // 2a. Initialise free-movement walk controller ----------------------------
+  initWalk(camera, renderer.domElement);
+
   // 3. Load tiles -----------------------------------------------------------
   debugStep('tiles', 'loading');
   try {
@@ -181,7 +185,10 @@ async function init() {
   initInspect();
 
   // 6. Animation loop -------------------------------------------------------
+  const clock = new THREE.Clock();
   renderer.setAnimationLoop(() => {
+    const delta = clock.getDelta();
+    updateWalk(delta);
     renderer.render(scene, camera);
   });
 

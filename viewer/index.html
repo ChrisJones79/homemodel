@@ -263,6 +263,28 @@
     }
 
     /* -----------------------------------------------------------------------
+       Controls hint
+    ----------------------------------------------------------------------- */
+    #controls-hint {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      padding: 6px 14px;
+      background: rgba(0, 0, 0, 0.60);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      color: #bbb;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* -----------------------------------------------------------------------
        Stub-mode indicator
     ----------------------------------------------------------------------- */
     #stub-indicator {
@@ -305,6 +327,9 @@
 
   <!-- Stub-mode badge (shown when ?stub=1 or HOMEMODEL_MODE=stub) -->
   <div id="stub-indicator">STUB MODE</div>
+
+  <!-- Walk controls hint -->
+  <div id="controls-hint">WASD / Arrows — move &nbsp;|&nbsp; Right-click drag — look &nbsp;|&nbsp; Shift — sprint &nbsp;|&nbsp; Q/E — up/down</div>
 
   <!-- VR entry button -->
   <button id="vr-button" type="button">Enter VR</button>

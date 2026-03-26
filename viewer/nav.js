@@ -6,6 +6,7 @@
  */
 
 import { gpsToLocal, isStubMode } from './scene.js';
+import { syncWalkFromCamera } from './walk.js';
 import { debugStep } from './debug.js';
 
 /** @type {Array} ViewpointList.viewpoints after fetch */
@@ -98,6 +99,10 @@ function _teleportTo(vp, camera) {
   camera.lookAt(lookAt.x, lookAt.y, lookAt.z);
 
   console.log(`[nav] Teleported to "${vp.label}" → local (${pos.x.toFixed(2)}, ${eyeY.toFixed(2)}, ${pos.z.toFixed(2)})`);
+
+  // Keep walk controller in sync so mouse/key input continues from the
+  // new orientation rather than snapping back to the old one.
+  syncWalkFromCamera();
 
   // Sync XR viewpoint tracker if available.
   import('./xr.js')
