@@ -2,7 +2,15 @@
 
 import pytest
 
-from tools.plan_reader.dimensions import parse_dimension, validate_dimensions
+from tools.plan_reader.dimensions import (
+    parse_dimension,
+    validate_dimensions,
+    feet_inches_to_meters,
+    meters_to_feet_inches,
+    format_feet_inches,
+    FEET_TO_METERS,
+    INCHES_TO_METERS,
+)
 
 _FT = 0.3048
 _IN = 0.0254
@@ -138,3 +146,50 @@ class TestValidateDimensions:
         assert result["matched"] == []
         assert result["mismatches"] == []
         assert result["unmatched_extracted"] == []
+
+
+class TestConstants:
+    """Public conversion constants are exposed for external use."""
+
+    def test_feet_to_meters_constant(self):
+        assert FEET_TO_METERS == pytest.approx(0.3048)
+
+    def test_inches_to_meters_constant(self):
+        assert INCHES_TO_METERS == pytest.approx(0.0254)
+
+
+class TestFeetInchesToMeters:
+    """feet_inches_to_meters: feet + inches → metres."""
+
+    def test_feet_and_inches(self):
+        assert feet_inches_to_meters(12, 6) == pytest.approx(12 * _FT + 6 * _IN)
+
+    def test_feet_only(self):
+        assert feet_inches_to_meters(10) == pytest.approx(10 * _FT)
+
+    def test_zero(self):
+        assert feet_inches_to_meters(0, 0) == pytest.approx(0.0)
+
+
+class TestMetersToFeetInches:
+    """meters_to_feet_inches: metres → (whole_feet, remaining_inches)."""
+
+    def test_round_trip(self):
+        ft, inches = meters_to_feet_inches(3.81)
+        assert ft == 12
+        assert inches == pytest.approx(6.0, abs=0.1)
+
+    def test_zero(self):
+        ft, inches = meters_to_feet_inches(0.0)
+        assert ft == 0
+        assert inches == pytest.approx(0.0)
+
+
+class TestFormatFeetInches:
+    """format_feet_inches: metres → architectural string."""
+
+    def test_even_inches(self):
+        assert format_feet_inches(3.81) == "12'-6\""
+
+    def test_zero_inches(self):
+        assert format_feet_inches(3.048) == "10'-0\""

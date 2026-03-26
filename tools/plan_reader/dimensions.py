@@ -22,6 +22,10 @@ _IN_TO_M: float = 0.0254
 _CM_TO_M: float = 0.01
 _MM_TO_M: float = 0.001
 
+# Public aliases for external use
+FEET_TO_METERS = _FT_TO_M
+INCHES_TO_METERS = _IN_TO_M
+
 # Inch value: whole number, decimal, mixed fraction ("6 1/2"), or pure fraction ("1/2")
 _INCH_VALUE = r"(?:\d+(?:\.\d+)?\s+\d+/\d+|\d+/\d+|\d+(?:\.\d+)?)"
 
@@ -162,3 +166,53 @@ def validate_dimensions(
         "unmatched_extracted": unmatched_extracted,
         "ok": len(mismatches) == 0 and len(unmatched_extracted) == 0,
     }
+
+
+def feet_inches_to_meters(feet: float, inches: float = 0.0) -> float:
+    """Convert feet and inches to metres.
+
+    Parameters
+    ----------
+    feet : float
+        Number of feet.
+    inches : float
+        Number of inches (default 0).
+
+    Returns
+    -------
+    float
+        Value in metres.
+    """
+    return feet * _FT_TO_M + inches * _IN_TO_M
+
+
+def meters_to_feet_inches(meters: float) -> tuple[int, float]:
+    """Convert metres to whole feet and remaining inches.
+
+    Returns
+    -------
+    tuple[int, float]
+        ``(whole_feet, remaining_inches)``
+    """
+    total_inches = meters / _IN_TO_M
+    whole_feet = int(total_inches // 12)
+    remaining_inches = round(total_inches % 12, 2)
+    return whole_feet, remaining_inches
+
+
+def format_feet_inches(meters: float) -> str:
+    """Format a metre value as an architectural feet-inches string.
+
+    Examples
+    --------
+    >>> format_feet_inches(3.81)
+    "12'-6\\""
+    >>> format_feet_inches(3.048)
+    "10'-0\\""
+    """
+    ft, inches = meters_to_feet_inches(meters)
+    if inches == 0:
+        return f"{ft}'-0\""
+    if inches == int(inches):
+        return f"{ft}'-{int(inches)}\""
+    return f"{ft}'-{inches:.1f}\""
