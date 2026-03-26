@@ -1,0 +1,142 @@
+interface: map_to_ingestion
+version: 1
+description: >
+  How the parcel-builder ingests vector features from the Exeter town WMS
+  (mapsonline.net) into the homemodel schema.  Covers parcel boundaries,
+  zoning, wetlands, and flood zones.  All geometries are reprojected from
+  EPSG:3437 (NH State Plane, feet) or EPSG:900913 (Web Mercator) to WGS84
+  before submission to SchemaStore.
+
+source:
+  name: "Exeter NH Town Map"
+  url: "https://www.mapsonline.net/exeternh/"
+  wms_endpoint: "https://www.mapsonline.net/cgi-bin/mapserv"
+  mapfile: "/home/peoplegis/mapsonline/exeternh/map/mo4/mo4_site_207.map"
+  service: "WMS 1.1.1"
+  native_srs: "EPSG:900913"
+  data_srs: "EPSG:3437"
+  info_format: "application/json"
+
+surfaces:
+  - producer: "ParcelBuilder.fetch_parcel(lat, lon)"
+    contract:
+      name: ParcelFeature
+      fields:
+        type: "literal 'parcel'"
+        geometry: "GeoJSON Polygon in WGS84 (exterior ring + optional holes)"
+        position_gps: "{lat, lon, alt_m} — polygon centroid; alt_m defaults to scene alt"
+        properties:
+          parcel_id: "string — tax map ID (e.g. '041-016-000')"
+          lot_area_sf: "float — lot area in square feet"
+          owner: "string — nullable"
+          address: "string — nullable (street address if assigned)"
+          zoning: "string — zone code, nullable"
+          assessed_value: "integer — nullable, USD"
+          deed_book: "string — nullable"
+          deed_page: "string — nullable"
+          last_modified: "string — ISO date, nullable"
+          source_layer: "literal 'site_207::Parcels for Identify'"
+          source_sl_id: "integer — 9499"
+          wms_bbox: "[minx, miny, maxx, maxy] — query BBOX in EPSG:900913"
+      provenance:
+        source: "string — 'exeter_wms'"
+        fetched_at: "ISO 8601 timestamp"
+        method: "string — enum: wms_getfeatureinfo, playwright"
+    consumer: "Ingestion.submit_bulk()"
+
+  - producer: "ParcelBuilder.fetch_features(layer_id, bbox)"
+    contract:
+      name: MapFeature
+      fields:
+        type: "string — enum: zoning, wetland, flood_zone, elevation_contour"
+        geometry: "GeoJSON Polygon or LineString in WGS84"
+        position_gps: "{lat, lon, alt_m} — centroid or midpoint"
+        properties:
+          layer_id: "integer — WMS layer_id from source map"
+          sl_id: "integer — WMS sl_id from source map"
+          label: "string — nullable, feature label from WMS response"
+          raw_attributes: "dict — all key/value pairs returned by GetFeatureInfo"
+          source_layer: "string — WMS layer name"
+    consumer: "Ingestion.submit_bulk()"
+
+wms_layers:
+  parcels:
+    - name: "Parcels for Identify"
+      layer_id: 5504
+      sl_id: 9499
+      queryable: true
+      hidden: true
+      entity_type: "parcel"
+      notes: "Primary layer for GetFeatureInfo; yields parcel polygon + attributes"
+    - name: "Parcel Map Index"
+      layer_id: 5456
+      sl_id: 9498
+      queryable: false
+      entity_type: "parcel"
+    - name: "Parcels (polygons)"
+      layer_id: 4339
+      sl_id: 9466
+      tilecache: "parcels"
+      entity_type: "parcel"
+
+  constraints:
+    - name: "Prime Wetlands"
+      layer_id: 36744
+      entity_type: "wetland"
+    - name: "Prime Wetlands 100ft buffer"
+      layer_id: 36745
+      entity_type: "wetland"
+    - name: "FEMA Flood Zones"
+      layer_id: 35873
+      entity_type: "flood_zone"
+    - name: "Zoning"
+      layer_id: 4333
+      queryable: true
+      entity_type: "zoning"
+
+  elevation:
+    - name: "2ft Contours"
+      layer_id: 35841
+      entity_type: "elevation_contour"
+      interval_ft: 2
+    - name: "10ft Contours"
+      layer_id: 35840
+      entity_type: "elevation_contour"
+      interval_ft: 10
+
+coordinate_transform:
+  from_srs: "EPSG:3437"
+  to_srs: "EPSG:4326"
+  tool: "pyproj.Transformer.from_crs(3437, 4326, always_xy=True)"
+  notes: >
+    WMS returns geometries in EPSG:3437 (NH State Plane, NAD83, US feet).
+    All coordinates must be transformed to WGS84 (lat/lon) before storage.
+    Web Mercator (EPSG:900913) is used only for WMS request BBOX construction.
+
+test_fixtures:
+  parcel_feature:
+    type: "parcel"
+    geometry:
+      type: "Polygon"
+      coordinates:
+        - [[-70.98750, 42.98720], [-70.98730, 42.98720],
+           [-70.98730, 42.98740], [-70.98750, 42.98740],
+           [-70.98750, 42.98720]]
+    position_gps: {lat: 42.98730, lon: -70.98740, alt_m: 26.8}
+    properties:
+      parcel_id: "041-016-000"
+      lot_area_sf: 21780.0
+      owner: "Sample Owner"
+      address: "10 Sample Rd"
+      zoning: "R-1"
+      assessed_value: 450000
+      deed_book: "7842"
+      deed_page: "112"
+      last_modified: "2024-04-01"
+      source_layer: "site_207::Parcels for Identify"
+      source_sl_id: 9499
+      wms_bbox: [-7902659.54, 5309533.81, -7901401.20, 5310236.08]
+    provenance:
+      source: "exeter_wms"
+      fetched_at: "2025-01-01T00:00:00Z"
+      method: "wms_getfeatureinfo"
