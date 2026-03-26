@@ -142,3 +142,41 @@ skills:
       - CORS enabled for LAN access
       - All responses match contract field names exactly
       - No direct SQLite access — always go through SchemaStore
+
+  - id: parcel-builder
+    name: Parcel Builder
+    description: Ingests parcel and feature data from the Exeter town WMS into homemodel
+    area: 8
+    agent: copilot
+    agent_file: .github/agents/parcel-builder.agent.md
+    contracts:
+      - contracts/map_to_ingestion.yaml     # ParcelFeature, MapFeature, WMS layer index
+      - contracts/ingestion_to_schema.yaml  # EntityBatch, ValidationResult
+      - contracts/schema_to_backend.yaml    # Entity shape in SchemaStore
+    validation: HOMEMODEL_MODE=stub pytest parcels/ --tb=short -v
+    constraints:
+      - Option A (pure WMS GetFeatureInfo) is primary — no Playwright dependency
+      - pyproj is already in requirements.txt; do not add new dependencies
+      - All positions stored as WGS84 {lat, lon, alt_m}; alt_m defaults to 26.8
+      - In stub mode no HTTP requests and no pyproj calls; return fixture data
+      - Provenance must include source "exeter_wms" and fetched_at timestamp
+      - Rate-limit live WMS calls to 1 request/second
+      - Cache GetCapabilities response for the process lifetime
+
+  - id: plan-reader
+    name: Plan Reader
+    description: Converts floor-plan photos to StructureEntity records via Claude Vision
+    area: 9
+    agent: copilot
+    agent_file: .github/agents/plan-reader.agent.md
+    contracts:
+      - contracts/domains_to_schema.yaml    # StructureEntity, BuildRecord
+      - contracts/ingestion_to_schema.yaml  # Measurement, EntityBatch
+    validation: HOMEMODEL_MODE=stub pytest tools/ --tb=short -v
+    constraints:
+      - dimensions.py is read-only — do not modify it
+      - In stub mode no Anthropic API calls and no image filesystem reads
+      - Anthropic SDK imported only inside live-mode branch (optional import)
+      - All wall positions in metres; WGS84 GPS for anchored output
+      - Scene origin lat 42.98743 lon -70.98709 alt_m 26.8
+      - Follow class-based test layout used across the repo

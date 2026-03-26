@@ -317,3 +317,55 @@ tasks:
   issue_number: 40
   status: done
   title: Generate README.md(s) for onboarding and local testing
+- acceptance:
+  - HOMEMODEL_MODE=stub pytest parcels/ --tb=short -v passes
+  - fetch_parcel returns a valid ParcelFeature dict in stub mode
+  - ingest round-trips through validate + upsert without errors
+  - Coordinate transform EPSG:3437 → WGS84 round-trip accuracy < 1 m
+  agent: copilot
+  area: 8
+  custom_agent: parcel-builder
+  depends_on:
+  - ingestion-002
+  - schema-002
+  description: "Implement the parcels/ domain package that ingests vector features\
+    \ from the Exeter town WMS (https://www.mapsonline.net/exeternh/).\n\nFollow the\
+    \ ParcelFeature and MapFeature contracts in contracts/map_to_ingestion.yaml.\n\
+    Create: parcels/builder.py (ParcelBuilder), parcels/wms.py (WMSClient with\n\
+    GetCapabilities + GetFeatureInfo), parcels/transform.py (EPSG:3437 \u2192 WGS84\
+    \ via pyproj).\nParcelBuilder.fetch_parcel(lat, lon) builds BBOX, queries WMS,\
+    \ transforms geometry.\nParcelBuilder.ingest(lat, lon) fetches + validates + submits\
+    \ via Ingestion.submit_bulk().\nIn stub mode no HTTP or pyproj calls — return\
+    \ fixture data from contracts/map_to_ingestion.yaml.\nLog a BuildRecord after\
+    \ every ingest run.\nSee planning/06-exeter-map-recon.md for full WMS recon and\
+    \ layer index.\n"
+  id: parcel-builder-001
+  issue_number: null
+  status: todo
+  title: Implement ParcelBuilder — Exeter WMS parcel ingestion
+- acceptance:
+  - HOMEMODEL_MODE=stub pytest tools/ --tb=short -v passes (all 29+ tests)
+  - VisionExtractor.extract() returns parseable dimensions in stub mode
+  - PlanReader.read() returns extraction, validation, walls, upsert_result, build_record
+  - validate_dimensions raises ValueError on mismatch when annotated_dims provided
+  agent: copilot
+  area: 9
+  custom_agent: plan-reader
+  depends_on:
+  - ingestion-002
+  - structure-001
+  description: "Complete the tools/plan_reader/ vision pipeline.\n\nThe dimension\
+    \ parser (dimensions.py) and 29 tests are already implemented and green.\n\
+    Add: tools/plan_reader/vision.py (VisionExtractor — Claude Vision extraction,\
+    \ stub mode fixture),\n     tools/plan_reader/geometry.py (reconstruct_walls —\
+    \ wall segment list from dims + labels),\n     tools/plan_reader/pipeline.py\
+    \ (PlanReader.read() — full end-to-end flow).\nIn stub mode: no Anthropic API\
+    \ calls; return deterministic fixture extraction.\nIn live mode: call claude-opus-4-5\
+    \ via Anthropic Messages API; prompt returns JSON\n  with keys dimensions, room_labels,\
+    \ opening_types.\nPipeline anchors geometry to GPS scene origin (lat 42.98743,\
+    \ lon -70.98709, alt_m 26.8)\nthen submits via Ingestion.submit_bulk() and logs\
+    \ a BuildRecord.\nSee tools/plan_reader/DESIGN.md for full design and v1 MVP scope.\n"
+  id: plan-reader-001
+  issue_number: null
+  status: todo
+  title: Implement plan reader vision pipeline (vision + geometry + pipeline modules)
