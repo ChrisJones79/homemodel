@@ -78,6 +78,17 @@ HOMEMODEL_MODE=stub pytest schema/ --tb=short -v
 
 Test fixtures and helpers are in `schema/tests/conftest.py`.
 
+### Test Coverage
+
+| File | Tests | Coverage |
+|---|---|---|
+| `schema/store.py` | 46 | 98% |
+| `schema/models.py` | — | — |
+| **Module total** | **46** | **82%** |
+
+`schema/models.py` contains shared constants imported by other modules; its
+lines are exercised indirectly through integration tests in other modules.
+
 ---
 
 ## Contract Reference

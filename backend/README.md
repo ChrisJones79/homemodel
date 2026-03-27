@@ -53,6 +53,13 @@ HOMEMODEL_MODE=stub pytest backend/ --tb=short -v
 Tests cover both stub and real mode via `stub_client` / `real_client` fixtures
 in `backend/tests/`.
 
+### Test Coverage
+
+| File | Tests | Coverage |
+|---|---|---|
+| `backend/main.py` | 82 | 92% |
+| **Module total** | **82** | **92%** |
+
 ### Testing POST /entities (add to store)
 
 **Stub mode** — confirms the endpoint accepts a valid body and returns a

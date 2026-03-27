@@ -90,6 +90,14 @@ logic executes fully, so tests run without a database.
 Test fixtures (`laser_measurement`, `drone_image`) are defined in
 `ingestion/tests/conftest.py`.
 
+### Test Coverage
+
+| File | Tests | Coverage |
+|---|---|---|
+| `ingestion/pipeline.py` | 53 | 88% |
+| `ingestion/validate.py` | — | 84% |
+| **Module total** | **53** | **85%** |
+
 ---
 
 ## Contract Reference

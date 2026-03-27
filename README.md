@@ -248,6 +248,21 @@ curl http://localhost:8000/entities/550e8400-e29b-41d4-a716-446655440001
 HOMEMODEL_MODE=stub pytest --tb=short -v
 ```
 
+### Test summary
+
+All 324 tests pass with 96% overall coverage.
+
+| Module | Tests | Coverage | Command |
+|---|---|---|---|
+| `backend` | 82 | 92% | `HOMEMODEL_MODE=stub pytest backend/ --tb=short -v` |
+| `schema` | 46 | 82% | `HOMEMODEL_MODE=stub pytest schema/ --tb=short -v` |
+| `ingestion` | 53 | 85% | `HOMEMODEL_MODE=stub pytest ingestion/ --tb=short -v` |
+| `terrain` | 5 | 87% | `HOMEMODEL_MODE=stub pytest terrain/ --tb=short -v` |
+| `structures` | 39 | 91% | `HOMEMODEL_MODE=stub pytest structures/ --tb=short -v` |
+| `vegetation` | 61 | 98% | `HOMEMODEL_MODE=stub pytest vegetation/ --tb=short -v` |
+| `tools/plan_reader` | 38 | 99% | `HOMEMODEL_MODE=stub pytest tools/ --tb=short -v` |
+| **Total** | **324** | **96%** | `HOMEMODEL_MODE=stub pytest --tb=short -v` |
+
 ### Run tests for a specific module
 
 ```bash
@@ -262,6 +277,9 @@ HOMEMODEL_MODE=stub pytest ingestion/ --tb=short -v
 
 # Domain builders
 HOMEMODEL_MODE=stub pytest terrain/ structures/ vegetation/ --tb=short -v
+
+# Plan reader (dimension parser)
+HOMEMODEL_MODE=stub pytest tools/ --tb=short -v
 ```
 
 ### Verify "add to store" through the API
@@ -282,10 +300,12 @@ homemodel/
 ├── backend/          # FastAPI server (main.py) — see backend/README.md
 ├── schema/           # SchemaStore (SQLite) — see schema/README.md
 ├── ingestion/        # Measurement/image ingestion pipeline — see ingestion/README.md
-├── terrain/          # TerrainBuilder (elevation grid → patches)
-├── structures/       # StructureBuilder (floor plans → walls/rooms)
-├── vegetation/       # VegetationBuilder (tree survey → VegetationEntity)
+├── terrain/          # TerrainBuilder (elevation grid → patches) — see terrain/README.md
+├── structures/       # StructureBuilder (floor plans → walls/rooms) — see structures/README.md
+├── vegetation/       # VegetationBuilder (tree survey → VegetationEntity) — see vegetation/README.md
 ├── viewer/           # Three.js + WebXR browser viewer — see viewer/README.md
+├── tools/
+│   └── plan_reader/  # Dimension parser for architectural drawings — see tools/plan_reader/README.md
 ├── contracts/        # Interface contracts (source of truth for all data shapes)
 ├── scripts/          # Manager script + tasks.yaml (agent task tracking)
 ├── planning/         # Project planning documents and progress log
@@ -340,3 +360,7 @@ Test fixtures live in:
 - `viewer/README.md` — viewer usage, stub mode, and WebXR
 - `schema/README.md` — SchemaStore API reference
 - `ingestion/README.md` — ingestion pipeline and bulk import
+- `terrain/README.md` — TerrainBuilder and elevation data
+- `structures/README.md` — StructureBuilder and floor plan compilation
+- `vegetation/README.md` — VegetationBuilder and tree survey catalog
+- `tools/plan_reader/README.md` — dimension parser for architectural drawings
