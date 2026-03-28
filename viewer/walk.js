@@ -14,6 +14,14 @@
  *   Shift           — sprint (3× speed)
  *   Right-click drag — look (yaw + pitch)
  *
+ * PS4 / Gamepad controls (Standard Gamepad mapping):
+ *   Left  stick     — move (forward / back / strafe)
+ *   Right stick     — look (yaw + pitch)
+ *   D-pad           — move (forward / back / strafe)
+ *   R1  (button 5)  — sprint (3× speed)
+ *   R2  (button 7)  — move up
+ *   L2  (button 6)  — move down
+ *
  * Usage:
  *   import { initWalk, updateWalk, syncWalkFromCamera } from './walk.js';
  *
@@ -44,6 +52,12 @@ const LOOK_SPEED  = 0.003;
 
 /** Maximum pitch (radians) to prevent flipping past vertical. */
 const PITCH_LIMIT = Math.PI / 2 - 0.05;
+
+/** Minimum stick axis magnitude that registers as input (avoids drift). */
+const GP_DEAD_ZONE  = 0.1;
+
+/** Gamepad look sensitivity in radians per second per full-deflection unit. */
+const GP_LOOK_SPEED = 2.0;
 
 // ---------------------------------------------------------------------------
 // Module state
@@ -103,7 +117,7 @@ export function initWalk(camera, domElement) {
   document.addEventListener('keydown',       _onKeyDown);
   document.addEventListener('keyup',         _onKeyUp);
 
-  console.log('[walk] Free-movement controller ready. WASD = move, right-click drag = look.');
+  console.log('[walk] Free-movement controller ready. WASD = move, right-click drag = look, PS4 gamepad supported.');
 }
 
 /**
@@ -115,6 +129,20 @@ export function initWalk(camera, domElement) {
  */
 export function updateWalk(delta) {
   if (!_camera) return;
+
+  // --- Gamepad look (applied before quaternion so it takes effect this frame) ---
+  const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+  let _gp = null;
+  for (const gp of gamepads) {
+    if (gp) { _gp = gp; break; }
+  }
+  if (_gp) {
+    const rx = Math.abs(_gp.axes[2]) > GP_DEAD_ZONE ? _gp.axes[2] : 0;
+    const ry = Math.abs(_gp.axes[3]) > GP_DEAD_ZONE ? _gp.axes[3] : 0;
+    _yaw   -= rx * GP_LOOK_SPEED * delta;
+    _pitch -= ry * GP_LOOK_SPEED * delta;
+    _pitch  = Math.max(-PITCH_LIMIT, Math.min(PITCH_LIMIT, _pitch));
+  }
 
   // Apply yaw+pitch to the camera quaternion.
   const euler = new THREE.Euler(_pitch, _yaw, 0, 'YXZ');
@@ -141,6 +169,31 @@ export function updateWalk(delta) {
   if (_keys['KeyD']     || _keys['ArrowRight']) _camera.position.addScaledVector(_right,    dist);
   if (_keys['KeyE']     || _keys['PageUp'])     _camera.position.addScaledVector(_worldUp,  dist);
   if (_keys['KeyQ']     || _keys['PageDown'])   _camera.position.addScaledVector(_worldUp, -dist);
+
+  // --- Gamepad movement ---
+  if (_gp) {
+    const gpSprint = _gp.buttons[5]?.pressed ?? false;
+    const gpSpeed  = gpSprint ? MOVE_SPEED * SPRINT_MULT : MOVE_SPEED;
+    const gpDist   = gpSpeed * delta;
+
+    // Left stick: forward/back (axes[1]) and strafe (axes[0]).
+    const lx = Math.abs(_gp.axes[0]) > GP_DEAD_ZONE ? _gp.axes[0] : 0;
+    const ly = Math.abs(_gp.axes[1]) > GP_DEAD_ZONE ? _gp.axes[1] : 0;
+    if (lx !== 0) _camera.position.addScaledVector(_right,   lx * gpDist);
+    if (ly !== 0) _camera.position.addScaledVector(_forward, -ly * gpDist);
+
+    // D-pad: buttons 12–15.
+    if (_gp.buttons[12]?.pressed) _camera.position.addScaledVector(_forward,  gpDist);
+    if (_gp.buttons[13]?.pressed) _camera.position.addScaledVector(_forward, -gpDist);
+    if (_gp.buttons[14]?.pressed) _camera.position.addScaledVector(_right,   -gpDist);
+    if (_gp.buttons[15]?.pressed) _camera.position.addScaledVector(_right,    gpDist);
+
+    // R2 (button 7) = move up, L2 (button 6) = move down (analog triggers).
+    const r2 = _gp.buttons[7]?.value ?? (_gp.buttons[7]?.pressed ? 1 : 0);
+    const l2 = _gp.buttons[6]?.value ?? (_gp.buttons[6]?.pressed ? 1 : 0);
+    if (r2 > GP_DEAD_ZONE) _camera.position.addScaledVector(_worldUp,  r2 * gpDist);
+    if (l2 > GP_DEAD_ZONE) _camera.position.addScaledVector(_worldUp, -l2 * gpDist);
+  }
 }
 
 /**
