@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=HomeModel (Dev)
+Comment=Start HomeModel backend in dev mode with a separate development database and open Firefox
+Exec=bash <SCRIPT_DIR>/homemodel-dev.sh
+Terminal=true
+Categories=Development;
