@@ -41,6 +41,9 @@ JavaScript runs directly in the browser — no Node.js, no bundler required.
 git clone https://github.com/ChrisJones79/homemodel.git
 cd homemodel
 
+# 1a. Activate virtual environment (optional)
+source venv/bin/activate
+
 # 2. Install Python dependencies
 pip install -r requirements.txt
 
