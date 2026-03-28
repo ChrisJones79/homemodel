@@ -3,6 +3,7 @@
 A locally-hosted, LAN-accessible 3D navigable model of a house and 5-acre property.
 GPS-anchored at **lat 42.98743, lon -70.98709, alt 26.8 m**. Rendered in Three.js
 with WebXR (Valve Index) support. Backend is FastAPI + SQLite.
+*NOTE WELL: Only run on isolated network until you configure `CORS_ALLOW_ORIGINS`. `Default=*`*
 
 ---
 
