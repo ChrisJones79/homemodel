@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=HomeModel (Real)
+Comment=Start HomeModel backend in real mode with persistent database and open Firefox
+Exec=bash <SCRIPT_DIR>/homemodel-real.sh
+Terminal=true
+Categories=Development;

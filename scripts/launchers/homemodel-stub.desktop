@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=HomeModel (Stub)
+Comment=Start HomeModel backend in stub mode and open Firefox (no database required)
+Exec=bash <SCRIPT_DIR>/homemodel-stub.sh
+Terminal=true
+Categories=Development;
