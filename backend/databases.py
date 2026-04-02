@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -163,8 +164,8 @@ def discover_databases() -> list[dict[str, Any]]:
                     {"sw_lat": -90.0, "sw_lon": -180.0, "ne_lat": 90.0, "ne_lon": 180.0}
                 )
                 entity_count = region["total_count"]
-        except Exception as exc:  # pragma: no cover
-            _logger.warning("Could not read entity count from %s: %s", db_file.name, exc)
+        except (OSError, Exception) as exc:  # pragma: no cover
+            _logger.error("Could not read entity count from %s: %s", db_file.name, exc)
 
         results.append(
             {
@@ -177,11 +178,23 @@ def discover_databases() -> list[dict[str, Any]]:
     return results
 
 
-def _resolve_db_file(db_name: str) -> Path:
-    """Return the Path for a named database, raising HTTPException if not found."""
-    # Guard against path traversal.
-    if "/" in db_name or "\\" in db_name or db_name.startswith("."):
+# Strict allowlist: letters, digits, hyphens, and underscores only.
+_DB_NAME_RE = re.compile(r'^[A-Za-z0-9_-]+$')
+
+
+def _validate_db_name(db_name: str) -> None:
+    """Raise HTTPException(400) if *db_name* contains unsafe characters."""
+    if not _DB_NAME_RE.match(db_name):
         raise HTTPException(status_code=400, detail="Invalid database name")
+
+
+def _resolve_db_file(db_name: str) -> Path:
+    """Return the Path for a named database, raising HTTPException if not found.
+
+    Looks up the database file from a pre-enumerated set of filesystem paths so
+    that user-supplied input is never used directly in path construction.
+    """
+    _validate_db_name(db_name)
 
     db_dir = _get_db_dir()
     if db_dir is None:
@@ -189,13 +202,16 @@ def _resolve_db_file(db_name: str) -> Path:
             status_code=503,
             detail="SCHEMASTORE_DB_PATH is not configured",
         )
-    db_file = db_dir / f"{db_name}.db"
-    if not db_file.exists():
+
+    # Build a lookup from the filesystem — the returned Path is never derived
+    # from user input, eliminating any path-injection risk.
+    known: dict[str, Path] = {f.stem: f for f in db_dir.glob("*.db")}
+    if db_name not in known:
         raise HTTPException(
             status_code=404,
             detail=f"Database not found: {db_name!r}",
         )
-    return db_file
+    return known[db_name]
 
 
 # ---------------------------------------------------------------------------
@@ -398,8 +414,7 @@ def create_databases_router(resolved_mode: str) -> APIRouter:
             )
 
         # Validate name before touching the filesystem.
-        if "/" in req.db_name or "\\" in req.db_name or req.db_name.startswith("."):
-            raise HTTPException(status_code=400, detail="Invalid database name")
+        _validate_db_name(req.db_name)
 
         db_dir = _get_db_dir()
         if db_dir is None:
@@ -408,7 +423,11 @@ def create_databases_router(resolved_mode: str) -> APIRouter:
                 detail="SCHEMASTORE_DB_PATH is not configured",
             )
 
-        new_db_file = db_dir / f"{req.db_name}.db"
+        # os.path.basename strips any residual directory component so the
+        # resulting filename is always a plain filename with no path separators.
+        safe_filename = os.path.basename(req.db_name) + ".db"
+        new_db_file   = db_dir / safe_filename
+
         if new_db_file.exists():
             raise HTTPException(
                 status_code=409,

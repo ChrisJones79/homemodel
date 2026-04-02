@@ -430,7 +430,7 @@ function _flattenEntity(entity) {
   // properties — editable
   const props = entity.properties ?? {};
   for (const [k, v] of Object.entries(props)) {
-    rows.push({ key: `properties.${k}`, value: v, editable: true });
+    rows.push({ key: `${_PROPS_PREFIX}${k}`, value: v, editable: true });
   }
 
   return rows;
@@ -581,7 +581,8 @@ function _buildEntityMesh(entity) {
   return group;
 }
 
-// Debounced live-preview update when editable inputs change
+// Prefix used to identify editable property keys in the flat attribute map.
+const _PROPS_PREFIX = 'properties.';
 let _liveUpdateTimer = null;
 function _scheduleLiveUpdate() {
   clearTimeout(_liveUpdateTimer);
@@ -593,8 +594,8 @@ function _scheduleLiveUpdate() {
 function _mergeEdits(entity) {
   const copy = JSON.parse(JSON.stringify(entity));
   for (const [key, value] of Object.entries(_editedProps)) {
-    if (key.startsWith('properties.')) {
-      const prop = key.slice('properties.'.length);
+    if (key.startsWith(_PROPS_PREFIX)) {
+      const prop = key.slice(_PROPS_PREFIX.length);
       const num  = parseFloat(value);
       copy.properties[prop] = Number.isNaN(num) ? value : num;
     }
@@ -611,8 +612,8 @@ async function _saveEntity() {
 
   const patchProps = {};
   for (const [key, value] of Object.entries(_editedProps)) {
-    if (key.startsWith('properties.')) {
-      const prop = key.slice('properties.'.length);
+    if (key.startsWith(_PROPS_PREFIX)) {
+      const prop = key.slice(_PROPS_PREFIX.length);
       const num  = parseFloat(value);
       patchProps[prop] = Number.isNaN(num) ? value : num;
     }
