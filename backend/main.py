@@ -35,6 +35,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from backend.databases import create_databases_router
+
 _logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -323,7 +325,7 @@ def create_app(mode: str | None = None) -> FastAPI:
         CORSMiddleware,
         allow_origins=cors_origins,
         allow_credentials=False,
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "PATCH"],
         allow_headers=["*"],
     )
 
@@ -534,6 +536,12 @@ def create_app(mode: str | None = None) -> FastAPI:
             raise HTTPException(status_code=503, detail="SchemaStore unavailable") from exc
 
         return UpsertResult(**result)
+
+    # ------------------------------------------------------------------
+    # Databases router: /databases endpoints for multi-DB discovery
+    # and per-asset inspection / editing.
+    # ------------------------------------------------------------------
+    application.include_router(create_databases_router(resolved_mode))
 
     # ------------------------------------------------------------------
     # Static files: serve viewer/ at root so http://localhost:8000/ opens
