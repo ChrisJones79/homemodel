@@ -242,7 +242,8 @@ function _selectDatabase(db) {
   _clearDetailPane();
 
   const typeFilter = document.getElementById('br-type-filter');
-  _loadEntities(db.name, typeFilter ? typeFilter.value || null : null);
+  if (typeFilter) typeFilter.value = '';
+  _loadEntities(db.name, null);
 }
 
 // ---------------------------------------------------------------------------
