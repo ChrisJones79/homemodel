@@ -800,7 +800,7 @@
   </div>
 
   <!-- Asset Browser overlay (toggled by browser.js) -->
-  <div id="browser-overlay">
+  <div id="browser-overlay" role="dialog" aria-modal="true" aria-label="Asset Browser">
     <!-- Toolbar -->
     <div class="br-toolbar">
       <span class="br-toolbar-title">📂 Asset Browser</span>
@@ -817,7 +817,7 @@
       <div class="br-col-dbs">
         <div class="br-col-header">
           <h3>Databases</h3>
-          <button id="br-refresh-dbs" type="button" class="br-icon-btn" title="Refresh list">↺</button>
+          <button id="br-refresh-dbs" type="button" class="br-icon-btn" title="Refresh list" aria-label="Refresh database list">↺</button>
         </div>
         <div class="br-col-scroll" id="br-db-list"></div>
       </div>

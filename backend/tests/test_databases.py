@@ -279,8 +279,8 @@ class TestGetDatabasesReal:
         db = next(d for d in dbs if d["name"] == _DB_NAME)
         assert db["size_bytes"] > 0
 
-    def test_unconfigured_returns_503(self, monkeypatch):
-        """When SCHEMASTORE_DB_PATH is unset, GET /databases returns empty list."""
+    def test_unconfigured_returns_200_empty_list(self, monkeypatch):
+        """When SCHEMASTORE_DB_PATH is unset, GET /databases returns 200 with empty list."""
         monkeypatch.delenv("SCHEMASTORE_DB_PATH", raising=False)
         from backend.main import create_app  # noqa: PLC0415
 

@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 _logger = logging.getLogger(__name__)
 
@@ -48,7 +48,7 @@ class DatabaseList(BaseModel):
 
 
 class EntityPatch(BaseModel):
-    properties: dict[str, Any] = {}
+    properties: dict[str, Any] = Field(default_factory=dict)
 
 
 class NewDatabaseRequest(BaseModel):
@@ -157,14 +157,12 @@ def discover_databases() -> list[dict[str, Any]]:
     for db_file in sorted(db_dir.glob("*.db")):
         entity_count = 0
         try:
-            from schema.store import SchemaStore  # noqa: PLC0415
+            import sqlite3 as _sqlite3  # noqa: PLC0415
 
-            with SchemaStore(db_path=str(db_file)) as store:
-                region = store.query_region(
-                    {"sw_lat": -90.0, "sw_lon": -180.0, "ne_lat": 90.0, "ne_lon": 180.0}
-                )
-                entity_count = region["total_count"]
-        except (OSError, Exception) as exc:  # pragma: no cover
+            with _sqlite3.connect(str(db_file)) as conn:
+                row = conn.execute("SELECT COUNT(*) FROM entities").fetchone()
+                entity_count = row[0] if row else 0
+        except Exception as exc:  # pragma: no cover
             _logger.error("Could not read entity count from %s: %s", db_file.name, exc)
 
         results.append(
@@ -428,7 +426,12 @@ def create_databases_router(resolved_mode: str) -> APIRouter:
         safe_filename = os.path.basename(req.db_name) + ".db"
         new_db_file   = db_dir / safe_filename
 
-        if new_db_file.exists():
+        # Use O_CREAT|O_EXCL for an atomic exclusive-create, eliminating the
+        # TOCTOU window that exists() + open() would leave open.
+        try:
+            fd = os.open(str(new_db_file), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(fd)
+        except FileExistsError:
             raise HTTPException(
                 status_code=409,
                 detail=f"Database already exists: {req.db_name!r}",
