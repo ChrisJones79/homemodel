@@ -8,7 +8,9 @@ are fetched. No entity records, no database writes.
 
 ## What it does
 
-- Loads a GPS-anchored Three.js scene centred on lat 42.98743, lon -70.98709, alt 26.8 m.
+- Loads a GPS-anchored Three.js scene centred on **lat 42.98743, lon -70.98709, alt 26.8 m** —  
+  this is a **fixed anchor point**: the origin of the virtual coordinate space and the exact  
+  physical location of the house in the real world.
 - Streams LOD terrain tile meshes (glTF/GLB) as the camera moves.
 - Provides named **viewpoints** (e.g. Front Yard, Back Yard, Roof) reachable via the nav overlay.
 - Supports free-movement **walk mode** — WASD / arrow keys to move, right-click drag to look,  

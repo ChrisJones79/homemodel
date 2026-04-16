@@ -27,7 +27,7 @@ No data is modified. The panel is dismissed with **Escape** or the × button.
 | Backend — region query | `backend/main.py` | `GET /entities?bbox=…` → `EntityList` |
 | SchemaStore | `schema/store.py` | `get_entity(id)` |
 | Stub fixtures | `viewer/fixtures/entity_tree.json` | Tree entity fixture (stub mode) |
-| Stub fixtures | `viewer/fixtures/entity_house.json` | House entity fixture (stub mode) |
+| Stub fixtures | `viewer/fixtures/entity_structure.json` | Structure entity fixture (stub mode) |
 
 ---
 
@@ -44,7 +44,7 @@ open http://localhost:8000
 **Click any visible mesh** in the scene.  The inspect panel slides in from the right showing  
 the entity data.  Press **Escape** or click **×** to close it.
 
-In stub mode (`?stub=1`) the scene pre-places a visible tree mesh and house mesh — click either  
+In stub mode (`?stub=1`) the scene pre-places a visible tree mesh and structure mesh — click either  
 to see the associated fixture data without a live backend.
 
 ---

@@ -10,6 +10,15 @@ The core folders (`backend/`, `viewer/`, `schema/`, `ingestion/`, `terrain/`, `s
 
 ---
 
+## Where to start
+
+- **Just want to explore the 3-D scene?** → Start with [**01 — Strictly Viewing**](./01-strictly-viewing/README.md).
+- **Want to click meshes and inspect entity data?** → Start with [**02 — Asset Viewing**](./02-asset-viewing/README.md).
+- **Need to write a single entity via the API?** → Start with [**04 — Asset Creation**](./04-asset-creation/README.md).
+- **Ingesting data at scale or from a pipeline?** → Start with [**05 — Data Ingestion**](./05-data-ingestion/README.md).
+
+---
+
 ## Subfolders
 
 | # | Folder | What it covers |
