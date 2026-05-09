@@ -2,7 +2,7 @@
 #
 # Browser-accessible equivalent of `python scripts/manager.py`.
 # Run from the GitHub Actions UI (Actions → HomeModel Manager → Run workflow)
-# or on a daily schedule (status check).
+# or when changes are merged to the default branch (status check).
 #
 # All commands that write to tasks.yaml commit the result back to the branch,
 # so the queue stays in sync whether you run from a terminal or from the browser.
@@ -36,9 +36,9 @@ on:
         required: false
         default: ""
 
-  schedule:
-    # Check dispatched-task status every day at 09:00 UTC
-    - cron: "0 9 * * *"
+  push:
+    branches:
+      - master
 
 jobs:
   manage:
@@ -67,7 +67,7 @@ jobs:
         id: cmd
         run: |
           # workflow_dispatch provides github.event.inputs.command;
-          # the schedule trigger uses the default "status".
+          # push events use the default "status".
           CMD="${{ github.event.inputs.command }}"
           CMD="${CMD:-status}"
           echo "command=$CMD" >> "$GITHUB_OUTPUT"
